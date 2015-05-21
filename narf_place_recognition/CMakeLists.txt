@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(narf_place_recognition)
 
+# Generate database for vim YouCompleteMe
+set(CMAKE_EXPORT_COMPILE_COMMANDS "ON")
+
 ## Find catkin and any catkin packages
 find_package(
     catkin REQUIRED COMPONENTS
