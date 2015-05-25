@@ -50,7 +50,9 @@ include_directories(include
     ${libpointmatcher_INCLUDE_DIRS}
     )
 
-add_executable(bag_to_dataset src/bag_to_dataset.cpp)
+add_executable(bag_to_dataset 
+    src/bag_to_dataset.cpp
+    src/DatasetGenerator.cpp)
 target_link_libraries(bag_to_dataset 
     ${catkin_LIBRARIES}
     ${libpointmatcher_LIBRARIES}
