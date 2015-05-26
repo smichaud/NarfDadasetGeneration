@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <iomanip>
+#include <fstream>
 
 using namespace PointMatcher_ros;
 
@@ -18,10 +19,11 @@ void DatasetGenerator::managePointCloudMsg(rosbag::MessageInstance const &msg) {
         shared_ptr<PM::DataPoints> cloud(new PM::DataPoints(
                     rosMsgToPointMatcherCloud<float>(*cloudMsg)));
 
-        std::cout << "Got pointcloud " << this->pointCloudIndex << std::endl;
-        std::cout << "Pose:" << std::endl;
-        std::cout << this->lastPose.position << std::endl;
-        std::cout << this->lastPose.orientation << std::endl;
+        // [TODO]: Remove tmp output when done - 2015-05-25 08:18pm
+        //std::cout << "Got pointcloud " << this->pointCloudIndex << std::endl;
+        //std::cout << "Pose:" << std::endl;
+        //std::cout << this->lastMsgPose.position << std::endl;
+        //std::cout << this->lastMsgPose.orientation << std::endl;
 
         cloud->save(getCloudFilename());
         this->computeCloudOdometry(cloud);
@@ -34,17 +36,35 @@ void DatasetGenerator::manageOdometryMsg(rosbag::MessageInstance const &msg) {
     shared_ptr<geometry_msgs::PoseWithCovarianceStamped> odomMsg =
         msg.instantiate<geometry_msgs::PoseWithCovarianceStamped>();
 
-    if (odomMsg != NULL) {
-        this->lastPose = odomMsg->pose.pose;
+    if(odomMsg != NULL) {
+        this->lastMsgPose = odomMsg->pose.pose;
     }
 }
 
 void DatasetGenerator::computeCloudOdometry(
         shared_ptr<PM::DataPoints> currentCloud) {
-    // [TODO]: Compute/write odom - 2015-05-25 03:11pm
-    // If first RealCloudPose = 0
-    // lastPose - lastCloudPose = icpApprox
-    // lastRealCloudPose + (icpApprox + icpResult) = newRealCloudPose
+    if(this->pointCloudIndex != 0) {
+        // [TODO]: Compute/write odom - 2015-05-25 03:11pm
+        // [TODO]: Convert quaternion to rpy - 2015-05-25 08:17pm
+        // lastMsgPose - lastCloudPose = icpApprox
+        // lastRealCloudPose + (icpApprox + icpResult) = newRealCloudPose
+    }
+    saveOdom();
+}
+
+// [TODO]: Write this function properly - 2015-05-25 08:16pm
+void DatasetGenerator::saveOdom() {
+    std::string filename = this->outputPath + "scan_";
+    filename = this->appendNum(filename, this->pointCloudIndex);
+    filename += "_info.dat";
+    std::ofstream file;
+
+    //x y z roll pitch yaw
+    file.open(filename.c_str());
+    file << this->lastRealPose.position
+        << this->lastRealPose.orientation;
+
+    file.close();
 }
 
 std::string DatasetGenerator::getCloudFilename() {

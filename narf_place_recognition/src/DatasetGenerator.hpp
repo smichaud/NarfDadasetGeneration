@@ -12,20 +12,22 @@ typedef PointMatcher<float> PM;
 using boost::shared_ptr;
 
 class DatasetGenerator {
-    private:
+    private: //I should avoid ros dependency here...
         std::string outputPath;
         int pointCloudIndex;
-        geometry_msgs::Pose lastPose;
+        geometry_msgs::Pose lastMsgPose;
         geometry_msgs::Pose lastCloudPose;
         shared_ptr<PM::DataPoints> lastPointCloud;
+        geometry_msgs::Pose lastRealPose;
 
     public:
         DatasetGenerator();
-        void managePointCloudMsg(rosbag::MessageInstance const &msg); 
-        void manageOdometryMsg(rosbag::MessageInstance const &msg); 
+        void managePointCloudMsg(rosbag::MessageInstance const &msg);
+        void manageOdometryMsg(rosbag::MessageInstance const &msg);
 
     private:
         void computeCloudOdometry(shared_ptr<PM::DataPoints> currentCloud);
+        void saveOdom();
         std::string getCloudFilename();
         std::string appendNum(const std::string &input, const int &numSuffix);
 };
