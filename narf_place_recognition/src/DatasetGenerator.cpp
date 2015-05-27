@@ -1,15 +1,25 @@
+// [TODO]: Do ICP for next (with odom?) - 2015-05-21 12:36pm
+// [TODO]: Try to get the far range pointcloud - 2015-05-21 12:37pm
+// If your scan_001_far_ranges.pcd.
+// [TODO]: scan_001_info.dat - 2015-05-21 12:38pm
 #include "DatasetGenerator.hpp"
+
 #include "pointmatcher_ros/point_cloud.h"
 
 #include <iostream>
 #include <iomanip>
 #include <fstream>
 
+#include "geometry_msgs/Vector3.h"
+#include "geometry_msgs/Quaternion.h"
+#include "tf/transform_datatypes.h"
+
 using namespace PointMatcher_ros;
 
 DatasetGenerator::DatasetGenerator():
-    pointCloudIndex(0), outputPath("/home/smichaud/Desktop/test/") {
-    }
+    outputPath("/home/smichaud/Desktop/test/"), pointCloudIndex(0) {
+    lastRealPose.orientation.w = 1;
+}
 
 void DatasetGenerator::managePointCloudMsg(rosbag::MessageInstance const &msg) {
     shared_ptr<sensor_msgs::PointCloud2> cloudMsg =
@@ -52,17 +62,22 @@ void DatasetGenerator::computeCloudOdometry(
     saveOdom();
 }
 
-// [TODO]: Write this function properly - 2015-05-25 08:16pm
 void DatasetGenerator::saveOdom() {
     std::string filename = this->outputPath + "scan_";
     filename = this->appendNum(filename, this->pointCloudIndex);
     filename += "_info.dat";
-    std::ofstream file;
 
-    //x y z roll pitch yaw
+    Eigen::Vector3f rollPitchYaw = getRollPitchYaw(
+            this->lastRealPose.orientation);
+
+    std::ofstream file;
     file.open(filename.c_str());
-    file << this->lastRealPose.position
-        << this->lastRealPose.orientation;
+    file << this->lastRealPose.position.x << ", "
+        << this->lastRealPose.position.y  << ", "
+        << this->lastRealPose.position.z << ", "
+        << rollPitchYaw(0) << ", "
+        << rollPitchYaw(1) << ", "
+        << rollPitchYaw(2) << std::endl;
 
     file.close();
 }
@@ -81,4 +96,17 @@ std::string DatasetGenerator::appendNum(const std::string &input,
     output << input << std::setfill('0') << std::setw(3) << numSuffix;
 
     return output.str();
+}
+
+Eigen::Vector3f DatasetGenerator::getRollPitchYaw(
+        geometry_msgs::Quaternion quaternionMsg) {
+    // RPY convention order seems to be ZYX
+    tf::Quaternion quaternionTf;
+
+    tf::quaternionMsgToTF(quaternionMsg, quaternionTf);
+
+    double roll, pitch, yaw;
+    tf::Matrix3x3(quaternionTf).getRPY(roll, pitch, yaw);
+
+    return Eigen::Vector3f(roll, pitch, yaw);
 }

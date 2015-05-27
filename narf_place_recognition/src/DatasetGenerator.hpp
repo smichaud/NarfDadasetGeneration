@@ -7,6 +7,7 @@
 
 #include "pointmatcher/PointMatcher.h"
 #include "boost/shared_ptr.hpp"
+#include <Eigen/Dense>
 
 typedef PointMatcher<float> PM;
 using boost::shared_ptr;
@@ -30,6 +31,8 @@ class DatasetGenerator {
         void saveOdom();
         std::string getCloudFilename();
         std::string appendNum(const std::string &input, const int &numSuffix);
+        Eigen::Vector3f getRollPitchYaw(
+                geometry_msgs::Quaternion quaternionMsg);
 };
 
 #endif
