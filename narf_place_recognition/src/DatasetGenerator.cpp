@@ -17,15 +17,27 @@
 using namespace PointMatcher_ros;
 
 DatasetGenerator::DatasetGenerator():
-    outputPath("/home/smichaud/Desktop/test/"), pointCloudIndex(0) {
-    lastRealPose.orientation.w = 1;
+    outputPath("/home/smichaud/Desktop/test/"),
+    pointCloudIndex(0),
+    minDistBetweenPointClouds(4.0) {
+        lastRealPose.orientation.w = 1;
+}
+
+void DatasetGenerator::manageOdometryMsg(rosbag::MessageInstance const &msg) {
+    shared_ptr<geometry_msgs::PoseWithCovarianceStamped> odomMsg =
+        msg.instantiate<geometry_msgs::PoseWithCovarianceStamped>();
+
+    if(odomMsg != NULL) {
+        this->lastMsgPose = odomMsg->pose.pose;
+    }
 }
 
 void DatasetGenerator::managePointCloudMsg(rosbag::MessageInstance const &msg) {
     shared_ptr<sensor_msgs::PointCloud2> cloudMsg =
         msg.instantiate<sensor_msgs::PointCloud2>();
 
-    if(cloudMsg != NULL) {
+    if(cloudMsg != NULL
+            && getDistFromLastPosition() > this->minDistBetweenPointClouds) {
         shared_ptr<PM::DataPoints> cloud(new PM::DataPoints(
                     rosMsgToPointMatcherCloud<float>(*cloudMsg)));
 
@@ -42,13 +54,7 @@ void DatasetGenerator::managePointCloudMsg(rosbag::MessageInstance const &msg) {
     }
 }
 
-void DatasetGenerator::manageOdometryMsg(rosbag::MessageInstance const &msg) {
-    shared_ptr<geometry_msgs::PoseWithCovarianceStamped> odomMsg =
-        msg.instantiate<geometry_msgs::PoseWithCovarianceStamped>();
-
-    if(odomMsg != NULL) {
-        this->lastMsgPose = odomMsg->pose.pose;
-    }
+float DatasetGenerator::getDistFromLastPosition() {
 }
 
 void DatasetGenerator::computeCloudOdometry(

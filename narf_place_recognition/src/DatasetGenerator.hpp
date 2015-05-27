@@ -16,6 +16,7 @@ class DatasetGenerator {
     private: //I should avoid ros dependency here...
         std::string outputPath;
         int pointCloudIndex;
+        float minDistBetweenPointClouds;
         geometry_msgs::Pose lastMsgPose;
         geometry_msgs::Pose lastCloudPose;
         shared_ptr<PM::DataPoints> lastPointCloud;
@@ -23,10 +24,11 @@ class DatasetGenerator {
 
     public:
         DatasetGenerator();
-        void managePointCloudMsg(rosbag::MessageInstance const &msg);
         void manageOdometryMsg(rosbag::MessageInstance const &msg);
+        void managePointCloudMsg(rosbag::MessageInstance const &msg);
 
     private:
+        float getDistFromLastPosition();
         void computeCloudOdometry(shared_ptr<PM::DataPoints> currentCloud);
         void saveOdom();
         std::string getCloudFilename();
