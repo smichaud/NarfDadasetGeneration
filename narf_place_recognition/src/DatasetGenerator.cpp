@@ -14,11 +14,12 @@
 #include "geometry_msgs/Quaternion.h"
 #include "tf/transform_datatypes.h"
 
-using namespace PointMatcher_ros;
+using PointMatcher_ros::rosMsgToPointMatcherCloud;
 
-DatasetGenerator::DatasetGenerator():
-    outputPath("/home/smichaud/Desktop/test/"),
+DatasetGenerator::DatasetGenerator(const std::string outputPath):
+    outputPath(outputPath),
     pointCloudIndex(0),
+    numSuffixWidth(4),
     minDistBetweenPointClouds(4.0) {
         lastRealPose.orientation.w = 1;
 }
@@ -70,7 +71,7 @@ void DatasetGenerator::computeCloudOdometry(
 
 void DatasetGenerator::saveOdom() {
     std::string filename = this->outputPath + "scan_";
-    filename = this->appendNum(filename, this->pointCloudIndex);
+    filename += this->getPaddedNum(this->pointCloudIndex, this->numSuffixWidth);
     filename += "_info.dat";
 
     Eigen::Vector3f rollPitchYaw = getRollPitchYaw(
@@ -90,16 +91,16 @@ void DatasetGenerator::saveOdom() {
 
 std::string DatasetGenerator::getCloudFilename() {
     std::string filename = "scan_";
-    filename = appendNum(filename, pointCloudIndex);
+    filename += this->getPaddedNum(pointCloudIndex, this->numSuffixWidth);
     filename += ".pcd";
 
     return this->outputPath + filename;
 }
 
-std::string DatasetGenerator::appendNum(const std::string &input,
-        const int &numSuffix) {
+std::string DatasetGenerator::getPaddedNum(const int &numSuffix, 
+        const int width) {
     std::ostringstream output;
-    output << input << std::setfill('0') << std::setw(3) << numSuffix;
+    output << std::setfill('0') << std::setw(width) << numSuffix;
 
     return output.str();
 }
