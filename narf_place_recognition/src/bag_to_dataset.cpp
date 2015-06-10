@@ -8,6 +8,7 @@
 #include <Eigen/Dense>
 
 using std::string;
+using std::vector;
 
 int main(int argc, char **argv) {
     ros::init(argc, argv, "bag_to_dataset");
@@ -23,7 +24,7 @@ int main(int argc, char **argv) {
             string("/robot_pose_ekf/odom_combined"));
     nodeHandle.param("outputPath", outputPath, string(""));
 
-    std::vector<std::string> topics;
+    vector<string> topics;
     topics.push_back(cloudTopic);
     topics.push_back(poseTopic);
 
@@ -39,5 +40,5 @@ int main(int argc, char **argv) {
 
     bag.close();
 
-    ROS_INFO("bag_to_dataset processing over");
+    ROS_INFO("bag_to_dataset processing done");
 }

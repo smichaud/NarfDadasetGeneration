@@ -15,14 +15,15 @@
 #include "tf/transform_datatypes.h"
 
 using PointMatcher_ros::rosMsgToPointMatcherCloud;
+using std::ifstream;
 
-DatasetGenerator::DatasetGenerator(const std::string outputPath):
+DatasetGenerator::DatasetGenerator(const string outputPath):
     outputPath(outputPath),
     pointCloudIndex(0),
     numSuffixWidth(4),
     minDistBetweenPointClouds(4.0) {
         lastRealPose.orientation.w = 1;
-}
+    }
 
 void DatasetGenerator::manageOdometryMsg(rosbag::MessageInstance const &msg) {
     shared_ptr<geometry_msgs::PoseWithCovarianceStamped> odomMsg =
@@ -58,19 +59,26 @@ void DatasetGenerator::managePointCloudMsg(rosbag::MessageInstance const &msg) {
 float DatasetGenerator::getDistFromLastPosition() {
 }
 
+// [TODO]: Compute/write odom - 2015-05-25 03:11pm
+// [TODO]: Convert quaternion to rpy - 2015-05-25 08:17pm
+// lastMsgPose - lastCloudPose = icpApprox
+// lastRealCloudPose + (icpApprox + icpResult) = newRealCloudPose
 void DatasetGenerator::computeCloudOdometry(
         shared_ptr<PM::DataPoints> currentCloud) {
     if(this->pointCloudIndex != 0) {
-        // [TODO]: Compute/write odom - 2015-05-25 03:11pm
-        // [TODO]: Convert quaternion to rpy - 2015-05-25 08:17pm
-        // lastMsgPose - lastCloudPose = icpApprox
-        // lastRealCloudPose + (icpApprox + icpResult) = newRealCloudPose
+        PM::ICP icp;
+        string configFile = "./config/example.yaml";
+        std::ifstream inputConfigFile(configFile.c_str());
+        //if (!inputConfigFile.good()) {
+            //cerr << "Cannot open config file " << configFile << std::endl;
+        //}
+        //icp.loadFromYaml(inputConfigFile);
     }
     saveOdom();
 }
 
 void DatasetGenerator::saveOdom() {
-    std::string filename = this->outputPath + "scan_";
+    string filename = this->outputPath + "scan_";
     filename += this->getPaddedNum(this->pointCloudIndex, this->numSuffixWidth);
     filename += "_info.dat";
 
@@ -89,15 +97,15 @@ void DatasetGenerator::saveOdom() {
     file.close();
 }
 
-std::string DatasetGenerator::getCloudFilename() {
-    std::string filename = "scan_";
+string DatasetGenerator::getCloudFilename() {
+    string filename = "scan_";
     filename += this->getPaddedNum(pointCloudIndex, this->numSuffixWidth);
     filename += ".pcd";
 
     return this->outputPath + filename;
 }
 
-std::string DatasetGenerator::getPaddedNum(const int &numSuffix, 
+string DatasetGenerator::getPaddedNum(const int &numSuffix,
         const int width) {
     std::ostringstream output;
     output << std::setfill('0') << std::setw(width) << numSuffix;

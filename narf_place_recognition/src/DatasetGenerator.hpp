@@ -11,10 +11,12 @@
 
 typedef PointMatcher<float> PM;
 using boost::shared_ptr;
+using std::string;
+using std::endl;
 
 class DatasetGenerator {
     private: //I should avoid ros dependency here...
-        std::string outputPath;
+        string outputPath;
         int pointCloudIndex;
         const int numSuffixWidth;
         float minDistBetweenPointClouds;
@@ -24,7 +26,7 @@ class DatasetGenerator {
         geometry_msgs::Pose lastRealPose;
 
     public:
-        DatasetGenerator(const std::string outputPath);
+        DatasetGenerator(const string outputPath);
         void manageOdometryMsg(rosbag::MessageInstance const &msg);
         void managePointCloudMsg(rosbag::MessageInstance const &msg);
 
@@ -32,8 +34,8 @@ class DatasetGenerator {
         float getDistFromLastPosition();
         void computeCloudOdometry(shared_ptr<PM::DataPoints> currentCloud);
         void saveOdom();
-        std::string getCloudFilename();
-        std::string getPaddedNum(const int &numSuffix, const int width);
+        string getCloudFilename();
+        string getPaddedNum(const int &numSuffix, const int width);
         Eigen::Vector3f getRollPitchYaw(
                 geometry_msgs::Quaternion quaternionMsg);
 };
