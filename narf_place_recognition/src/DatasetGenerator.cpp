@@ -1,8 +1,8 @@
-// [TODO]: Do ICP for next (with odom?) - 2015-05-21 12:36pm
 // [TODO]: Try to get the far range pointcloud - 2015-05-21 12:37pm
 // If your scan_001_far_ranges.pcd.
 // [TODO]: scan_001_info.dat - 2015-05-21 12:38pm
 #include "DatasetGenerator.hpp"
+#include "IcpOdometry.hpp"
 
 #include "pointmatcher_ros/point_cloud.h"
 
@@ -16,12 +16,16 @@
 
 using PointMatcher_ros::rosMsgToPointMatcherCloud;
 using std::ifstream;
+using std::cerr;
 
 DatasetGenerator::DatasetGenerator(const string outputPath):
     outputPath(outputPath),
     pointCloudIndex(0),
     numSuffixWidth(4),
-    minDistBetweenPointClouds(4.0) {
+    minDistBetweenPointClouds(2.5) {
+        lastRealPose.orientation.x = 0;
+        lastRealPose.orientation.y = 0;
+        lastRealPose.orientation.z = 0;
         lastRealPose.orientation.w = 1;
     }
 
@@ -43,13 +47,7 @@ void DatasetGenerator::managePointCloudMsg(rosbag::MessageInstance const &msg) {
         shared_ptr<PM::DataPoints> cloud(new PM::DataPoints(
                     rosMsgToPointMatcherCloud<float>(*cloudMsg)));
 
-        // [TODO]: Remove tmp output when done - 2015-05-25 08:18pm
-        //std::cout << "Got pointcloud " << this->pointCloudIndex << std::endl;
-        //std::cout << "Pose:" << std::endl;
-        //std::cout << this->lastMsgPose.position << std::endl;
-        //std::cout << this->lastMsgPose.orientation << std::endl;
-
-        cloud->save(getCloudFilename());
+        cloud->save(generateCloudFilename());
         this->computeCloudOdometry(cloud);
         this->pointCloudIndex++;
         this->lastPointCloud = cloud;
@@ -57,6 +55,7 @@ void DatasetGenerator::managePointCloudMsg(rosbag::MessageInstance const &msg) {
 }
 
 float DatasetGenerator::getDistFromLastPosition() {
+    return 50.0; // Added for the Velodyne (so I don't take every cloud)
 }
 
 // [TODO]: Compute/write odom - 2015-05-25 03:11pm
@@ -67,13 +66,25 @@ void DatasetGenerator::computeCloudOdometry(
         shared_ptr<PM::DataPoints> currentCloud) {
     if(this->pointCloudIndex != 0) {
         PM::ICP icp;
-        string configFile = "./config/example.yaml";
+
+        string configFile = "/home/smichaud/Workspace/NarfDadasetGeneration/narf_place_recognition/config/sick_icp.yaml";
         std::ifstream inputConfigFile(configFile.c_str());
-        //if (!inputConfigFile.good()) {
-            //cerr << "Cannot open config file " << configFile << std::endl;
-        //}
-        //icp.loadFromYaml(inputConfigFile);
+        if (!inputConfigFile.good()) {
+            cerr << "Cannot open config file " << configFile << std::endl;
+        }
+
+        int cloudDimension = 3;
+        PM::TransformationParameters parsedTranslation;
+        parsedTranslation = PM::TransformationParameters::Identity(
+                cloudDimension+1,cloudDimension+1);
+
+        PM::TransformationParameters parsedRotation;
+        parsedRotation = PM::TransformationParameters::Identity(
+                cloudDimension+1,cloudDimension+1);
+
+        icp.loadFromYaml(inputConfigFile);
     }
+    //this->lastCloudPose = ;
     saveOdom();
 }
 
@@ -97,7 +108,7 @@ void DatasetGenerator::saveOdom() {
     file.close();
 }
 
-string DatasetGenerator::getCloudFilename() {
+string DatasetGenerator::generateCloudFilename() {
     string filename = "scan_";
     filename += this->getPaddedNum(pointCloudIndex, this->numSuffixWidth);
     filename += ".pcd";

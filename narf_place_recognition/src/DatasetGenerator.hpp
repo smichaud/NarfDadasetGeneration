@@ -10,6 +10,7 @@
 #include <Eigen/Dense>
 
 typedef PointMatcher<float> PM;
+
 using boost::shared_ptr;
 using std::string;
 using std::endl;
@@ -34,7 +35,7 @@ class DatasetGenerator {
         float getDistFromLastPosition();
         void computeCloudOdometry(shared_ptr<PM::DataPoints> currentCloud);
         void saveOdom();
-        string getCloudFilename();
+        string generateCloudFilename();
         string getPaddedNum(const int &numSuffix, const int width);
         Eigen::Vector3f getRollPitchYaw(
                 geometry_msgs::Quaternion quaternionMsg);
