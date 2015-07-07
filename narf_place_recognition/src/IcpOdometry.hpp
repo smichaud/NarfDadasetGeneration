@@ -1,17 +1,19 @@
 #ifndef ICPODOMETRY_H
 #define ICPODOMETRY_H
 
+#include "Definitions.hpp"
+
 #include <iostream>
-#include "pointmatcher/PointMatcher.h"
-#include "boost/shared_ptr.hpp"
+#include <pointmatcher/PointMatcher.h>
+#include <boost/shared_ptr.hpp>
 #include <Eigen/Dense>
 
-typedef PointMatcher<float> PM;
-typedef PM::DataPoints DP;
-typedef PM::Parameters Parameters;
-
 namespace icpodometry {
-    void getOdom(DP cloud1, DP cloud2, std::string file);
-};
+    Transformation getTransfo(
+            const PointCloud &startCloud,
+            const PointCloud &endCloud,
+            Transformation initTransfo,
+            const std::string &configFile);
+}
 
 #endif

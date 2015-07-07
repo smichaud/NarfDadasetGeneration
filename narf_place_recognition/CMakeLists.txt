@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(narf_place_recognition)
 
-# Generate database for vim YouCompleteMe
+# Generate database for vim YouCompleteMe plugin
 set(CMAKE_EXPORT_COMPILE_COMMANDS "ON")
 
 ## Find catkin and any catkin packages
@@ -50,9 +50,11 @@ include_directories(include
     ${libpointmatcher_INCLUDE_DIRS}
     )
 
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
 add_executable(bag_to_dataset 
     src/bag_to_dataset.cpp
-    src/DatasetGenerator.cpp)
+    src/DatasetGenerator.cpp
+    src/IcpOdometry.cpp)
 target_link_libraries(bag_to_dataset 
     ${catkin_LIBRARIES}
     ${libpointmatcher_LIBRARIES}

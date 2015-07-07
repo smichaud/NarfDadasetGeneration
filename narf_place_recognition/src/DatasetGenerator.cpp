@@ -4,17 +4,20 @@
 #include "DatasetGenerator.hpp"
 #include "IcpOdometry.hpp"
 
-#include "pointmatcher_ros/point_cloud.h"
+#include <pointmatcher_ros/point_cloud.h>
 
 #include <iostream>
 #include <iomanip>
 #include <fstream>
 
-#include "geometry_msgs/Vector3.h"
-#include "geometry_msgs/Quaternion.h"
-#include "tf/transform_datatypes.h"
+#include <geometry_msgs/Vector3.h>
+#include <geometry_msgs/Quaternion.h>
+#include <tf/transform_datatypes.h>
 
 using PointMatcher_ros::rosMsgToPointMatcherCloud;
+using boost::shared_ptr;
+using std::string;
+using std::endl;
 using std::ifstream;
 using std::cerr;
 
@@ -65,24 +68,6 @@ float DatasetGenerator::getDistFromLastPosition() {
 void DatasetGenerator::computeCloudOdometry(
         shared_ptr<PM::DataPoints> currentCloud) {
     if(this->pointCloudIndex != 0) {
-        PM::ICP icp;
-
-        string configFile = "/home/smichaud/Workspace/NarfDadasetGeneration/narf_place_recognition/config/sick_icp.yaml";
-        std::ifstream inputConfigFile(configFile.c_str());
-        if (!inputConfigFile.good()) {
-            cerr << "Cannot open config file " << configFile << std::endl;
-        }
-
-        int cloudDimension = 3;
-        PM::TransformationParameters parsedTranslation;
-        parsedTranslation = PM::TransformationParameters::Identity(
-                cloudDimension+1,cloudDimension+1);
-
-        PM::TransformationParameters parsedRotation;
-        parsedRotation = PM::TransformationParameters::Identity(
-                cloudDimension+1,cloudDimension+1);
-
-        icp.loadFromYaml(inputConfigFile);
     }
     //this->lastCloudPose = ;
     saveOdom();
