@@ -17,7 +17,6 @@ class DatasetGenerator {
         std::string outputPath;
         int pointCloudIndex;
         const int numSuffixWidth;
-        float minDistBetweenPointClouds;
 
         tf::Pose lastMsgPose;
         tf::Pose lastCloudPose;

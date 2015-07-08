@@ -4,6 +4,7 @@
 #include <iostream>
 #include <iomanip>
 #include <fstream>
+#include <cmath>
 
 #include <pointmatcher_ros/point_cloud.h>
 
@@ -14,7 +15,6 @@ DatasetGenerator::DatasetGenerator(const std::string outputPath):
     outputPath(outputPath),
     pointCloudIndex(0),
     numSuffixWidth(4),
-    minDistBetweenPointClouds(2.5),
     lastCorrectedPose(tf::Pose::getIdentity()) {
     }
 
@@ -31,51 +31,50 @@ void DatasetGenerator::managePointCloudMsg(rosbag::MessageInstance const &msg) {
     shared_ptr<sensor_msgs::PointCloud2> cloudMsg =
         msg.instantiate<sensor_msgs::PointCloud2>();
 
-    if(cloudMsg != NULL
-            && getDistFromLastPosition() > this->minDistBetweenPointClouds) {
+    if(cloudMsg != NULL) {
         shared_ptr<PM::DataPoints> cloud(new PM::DataPoints(
                     rosMsgToPointMatcherCloud<float>(*cloudMsg)));
 
         cloud->save(generateCloudFilename());
         this->computeCloudOdometry(cloud);
+
         this->pointCloudIndex++;
         this->lastPointCloud = cloud;
     }
 }
 
-// [TODO]: Do I really need it since I use SICK... - 2015-07-07 07:28pm
-float DatasetGenerator::getDistFromLastPosition() {
-    return 50.0; // Added for the Velodyne (so I don't take every cloud)
-}
-
-// [TODO]: Try to get the far range pointcloud - 2015-05-21 12:37pm
-// If your scan_001_far_ranges.pcd.
-// [TODO]: scan_001_info.dat - 2015-05-21 12:38pm
-// [TODO]: Compute/write odom - 2015-05-25 03:11pm
-// [TODO]: Convert quaternion to rpy - 2015-05-25 08:17pm
-// lastMsgPose - lastCloudPose = icpApprox
-// lastRealCloudPose + (icpApprox + icpResult) = newRealCloudPose
 void DatasetGenerator::computeCloudOdometry(
         shared_ptr<PM::DataPoints> currentCloud) {
-    tf::Pose startPose = this->lastCloudPose;
-    tf::Pose endPose = this->lastMsgPose;
-    tf::Transform poseDiff = startPose.inverseTimes(endPose);
+    if(this->pointCloudIndex == 0) {
+        std::cout << "First cloud, attributed the last cloud pose" << std::endl;
+    } else {
+        std::cout << "New cloud... processing odom" << std::endl;
+        tf::Pose startPose(this->lastCloudPose);
+        tf::Pose endPose(this->lastMsgPose);
+        tf::Transform poseDiff = startPose.inverseTimes(endPose);
 
-    if(this->pointCloudIndex != 0) {
+        std::cout << "The difference between the last and current cloud : " << std::endl;
+        std::cout << sqrt(pow(poseDiff.getOrigin().x(),2)+pow(poseDiff.getOrigin().y(),2)) << std::endl;
+        double roll, pitch, yaw;
+        tf::Matrix3x3(poseDiff.getRotation()).getRPY(roll, pitch, yaw);
+        std::cout << roll << ", " << pitch << ", " << yaw << std::endl;
+
+        std::cout << "I will correct odom here..." << std::endl;
+        // icpodometry::getTransform()
     }
-    //this->lastCloudPose = ;
+    this->lastCloudPose = this->lastMsgPose;
     saveOdom();
 }
 
 void DatasetGenerator::saveOdom() {
-    std::string filename = this->outputPath + "scan_";
-    filename += this->getPaddedNum(this->pointCloudIndex, this->numSuffixWidth);
-    filename += "_info.dat";
+    //std::string filename = this->outputPath + "scan_";
+    //filename += this->getPaddedNum(this->pointCloudIndex, this->numSuffixWidth);
+    //filename += "_info.dat";
 
     //Eigen::Vector3f rollPitchYaw = getRollPitchYaw(
     //this->lastCorrectedPose.orientation);
 
-    std::ofstream file;
+    //std::ofstream file;
     //file.open(filename.c_str());
     //file << this->lastCorrectedPose.position.x << ", "
     //<< this->lastCorrectedPose.position.y  << ", "
@@ -84,7 +83,7 @@ void DatasetGenerator::saveOdom() {
     //<< rollPitchYaw(1) << ", "
     //<< rollPitchYaw(2) << std::endl;
 
-    file.close();
+    //file.close();
 }
 
 std::string DatasetGenerator::generateCloudFilename() {
