@@ -6,6 +6,7 @@
 #include <rosbag/bag.h>
 #include <rosbag/view.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
+#include <tf/transform_datatypes.h>
 
 #include <pointmatcher/PointMatcher.h>
 #include <boost/shared_ptr.hpp>
@@ -17,10 +18,11 @@ class DatasetGenerator {
         int pointCloudIndex;
         const int numSuffixWidth;
         float minDistBetweenPointClouds;
-        geometry_msgs::Pose lastMsgPose;
-        geometry_msgs::Pose lastCloudPose;
+
+        tf::Pose lastMsgPose;
+        tf::Pose lastCloudPose;
+        tf::Pose lastCorrectedPose;
         boost::shared_ptr<PM::DataPoints> lastPointCloud;
-        geometry_msgs::Pose lastRealPose;
 
     public:
         DatasetGenerator(const std::string outputPath);
