@@ -53,14 +53,19 @@ void DatasetGenerator::computeCloudOdometry(
         tf::Pose endPose(this->lastMsgPose);
         tf::Transform poseDiff = startPose.inverseTimes(endPose);
 
-        std::cout << "The difference between the last and current cloud : " << std::endl;
-        std::cout << sqrt(pow(poseDiff.getOrigin().x(),2)+pow(poseDiff.getOrigin().y(),2)) << std::endl;
         double roll, pitch, yaw;
         tf::Matrix3x3(poseDiff.getRotation()).getRPY(roll, pitch, yaw);
-        std::cout << roll << ", " << pitch << ", " << yaw << std::endl;
+        std::cout << "poseDiff:" << "t = (" 
+            << poseDiff.getOrigin().x() << ", " 
+            << poseDiff.getOrigin().y() << ") = " 
+            << sqrt(pow(poseDiff.getOrigin().x(),2)+pow(poseDiff.getOrigin().y(),2)) 
+            << " --- yaw = " << yaw << std::endl;
 
-        std::cout << "I will correct odom here..." << std::endl;
-        // icpodometry::getTransform()
+        //Transformation fromTfToEigen;
+        //std::cout << "I will correct odom here..." << std::endl;
+        //icpodometry::getTransfo(*this->lastPointCloud, *currentCloud,
+                //fromTfToEigen,
+                //"/home/smichaud/Workspace/NarfDadasetGeneration/narf_place_recognition/config/sick_icp.yaml");
     }
     this->lastCloudPose = this->lastMsgPose;
     saveOdom();
