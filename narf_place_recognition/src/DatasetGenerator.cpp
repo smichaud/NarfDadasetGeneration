@@ -45,42 +45,30 @@ void DatasetGenerator::managePointCloudMsg(rosbag::MessageInstance const &msg) {
 
 void DatasetGenerator::computeCloudOdometry(
         shared_ptr<PM::DataPoints> currentCloud) {
-    if(this->pointCloudIndex == 0) {
-        std::cout << "First cloud, attributed the last cloud pose" << std::endl;
-    } else {
-        std::cout << "New cloud... processing odom" << std::endl;
+    if(this->pointCloudIndex != 0) {
         tf::Pose startPose(this->lastCloudPose);
         tf::Pose endPose(this->lastMsgPose);
         tf::Transform poseDiff = startPose.inverseTimes(endPose);
 
-        double roll, pitch, yaw;
-        tf::Matrix3x3(poseDiff.getRotation()).getRPY(roll, pitch, yaw);
-        std::cout << "poseDiff:" << "t = (" 
-            << poseDiff.getOrigin().x() << ", " 
-            << poseDiff.getOrigin().y() << ") = " 
-            << sqrt(pow(poseDiff.getOrigin().x(),2)+pow(poseDiff.getOrigin().y(),2)) 
-            << " --- yaw = " << yaw << std::endl;
-
-        //Transformation fromTfToEigen;
-        //std::cout << "I will correct odom here..." << std::endl;
-        //icpodometry::getTransfo(*this->lastPointCloud, *currentCloud,
-                //fromTfToEigen,
-                //"/home/smichaud/Workspace/NarfDadasetGeneration/narf_place_recognition/config/sick_icp.yaml");
+        Transformation initTransfo = this->tranformationFromTf(poseDiff);
+        icpodometry::getTransfo(*this->lastPointCloud, *currentCloud,
+                initTransfo,
+                "/home/smichaud/Workspace/NarfDadasetGeneration/narf_place_recognition/config/sick_icp.yaml");
     }
     this->lastCloudPose = this->lastMsgPose;
-    saveOdom();
+    //saveOdom();
 }
 
 void DatasetGenerator::saveOdom() {
-    //std::string filename = this->outputPath + "scan_";
-    //filename += this->getPaddedNum(this->pointCloudIndex, this->numSuffixWidth);
-    //filename += "_info.dat";
+    std::string filename = this->outputPath + "scan_";
+    filename += this->getPaddedNum(this->pointCloudIndex, this->numSuffixWidth);
+    filename += "_info.dat";
 
     //Eigen::Vector3f rollPitchYaw = getRollPitchYaw(
     //this->lastCorrectedPose.orientation);
 
-    //std::ofstream file;
-    //file.open(filename.c_str());
+    std::ofstream file;
+    file.open(filename.c_str());
     //file << this->lastCorrectedPose.position.x << ", "
     //<< this->lastCorrectedPose.position.y  << ", "
     //<< this->lastCorrectedPose.position.z << ", "
@@ -88,7 +76,7 @@ void DatasetGenerator::saveOdom() {
     //<< rollPitchYaw(1) << ", "
     //<< rollPitchYaw(2) << std::endl;
 
-    //file.close();
+    file.close();
 }
 
 std::string DatasetGenerator::generateCloudFilename() {
@@ -107,15 +95,14 @@ std::string DatasetGenerator::getPaddedNum(const int &numSuffix,
     return output.str();
 }
 
-Eigen::Vector3f DatasetGenerator::getRollPitchYaw(
-        geometry_msgs::Quaternion quaternionMsg) {
-    // RPY convention order seems to be ZYX
-    tf::Quaternion quaternionTf;
+Transformation DatasetGenerator::tranformationFromTf(tf::Transform tfTransfo) {
+    tf::Quaternion tfQuat = tfTransfo.getRotation();
+    Eigen::Quaternionf eigenQuat = Eigen::Quaternionf(
+            tfQuat.w(), tfQuat.x(), tfQuat.y(), tfQuat.z());
 
-    tf::quaternionMsgToTF(quaternionMsg, quaternionTf);
+    tf::Vector3 tfTranslation = tfTransfo.getOrigin();
+    Eigen::Vector3f translation = Eigen::Vector3f(
+            tfTranslation.x(), tfTranslation.y(), tfTranslation.z());
 
-    double roll, pitch, yaw;
-    tf::Matrix3x3(quaternionTf).getRPY(roll, pitch, yaw);
-
-    return Eigen::Vector3f(roll, pitch, yaw);
+    return Eigen::Matrix4f::Identity();
 }
