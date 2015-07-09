@@ -43,7 +43,7 @@ catkin_package(
     rosbag
     )
 
-include_directories(include 
+include_directories(include
     ${catkin_INCLUDE_DIRS}
     ${Boost_INCLUDE_DIRS}
     ${EIGEN_INCLUDE_DIRS}
@@ -51,13 +51,25 @@ include_directories(include
     )
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
-add_executable(bag_to_dataset 
+add_executable(bag_to_dataset
     src/bag_to_dataset.cpp
     src/DatasetGenerator.cpp
     src/IcpOdometry.cpp
     src/Conversion.cpp)
-target_link_libraries(bag_to_dataset 
+target_link_libraries(bag_to_dataset
     ${catkin_LIBRARIES}
     ${libpointmatcher_LIBRARIES}
+    ${Boost_LIBRARIES}
+    )
+
+catkin_add_gtest(
+    quick_test
+    test/quick_test.cpp
+    src/DatasetGenerator.cpp
+    src/IcpOdometry.cpp
+    src/Conversion.cpp)
+target_link_libraries(quick_test
+    ${libpointmatcher_LIBRARIES}
+    ${catkin_LIBRARIES}
     ${Boost_LIBRARIES}
     )

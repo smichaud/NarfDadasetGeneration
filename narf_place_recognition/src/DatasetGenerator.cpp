@@ -51,7 +51,7 @@ void DatasetGenerator::computeCloudOdometry(
         tf::Pose endPose(this->lastMsgPose);
         tf::Transform poseDiff = startPose.inverseTimes(endPose);
 
-        Conversion::tranformationFromTf(poseDiff);
+        //Conversion::tranformationFromTf(poseDiff);
         //Transformation initTransfo = Conversion::tranformationFromTf(poseDiff);
         //IcpOdometry::getTransfo(*this->lastPointCloud, *currentCloud,
                 //initTransfo,
