@@ -1,7 +1,7 @@
 #include "IcpOdometry.hpp"
 #include <fstream>
 
-namespace icpodometry {
+namespace IcpOdometry {
     Transformation getTransfo(
             const PointCloud &startCloud,
             const PointCloud &endCloud,

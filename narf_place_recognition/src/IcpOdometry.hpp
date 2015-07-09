@@ -8,7 +8,7 @@
 #include <boost/shared_ptr.hpp>
 #include <Eigen/Dense>
 
-namespace icpodometry {
+namespace IcpOdometry {
     Transformation getTransfo(
             const PointCloud &startCloud,
             const PointCloud &endCloud,

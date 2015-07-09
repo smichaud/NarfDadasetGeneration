@@ -1,5 +1,6 @@
 #include "DatasetGenerator.hpp"
 #include "IcpOdometry.hpp"
+#include "Conversion.hpp"
 
 #include <iostream>
 #include <iomanip>
@@ -50,10 +51,11 @@ void DatasetGenerator::computeCloudOdometry(
         tf::Pose endPose(this->lastMsgPose);
         tf::Transform poseDiff = startPose.inverseTimes(endPose);
 
-        Transformation initTransfo = this->tranformationFromTf(poseDiff);
-        icpodometry::getTransfo(*this->lastPointCloud, *currentCloud,
-                initTransfo,
-                "/home/smichaud/Workspace/NarfDadasetGeneration/narf_place_recognition/config/sick_icp.yaml");
+        Conversion::tranformationFromTf(poseDiff);
+        //Transformation initTransfo = Conversion::tranformationFromTf(poseDiff);
+        //IcpOdometry::getTransfo(*this->lastPointCloud, *currentCloud,
+                //initTransfo,
+                //"/home/smichaud/Workspace/NarfDadasetGeneration/narf_place_recognition/config/sick_icp.yaml");
     }
     this->lastCloudPose = this->lastMsgPose;
     //saveOdom();
@@ -93,16 +95,4 @@ std::string DatasetGenerator::getPaddedNum(const int &numSuffix,
     output << std::setfill('0') << std::setw(width) << numSuffix;
 
     return output.str();
-}
-
-Transformation DatasetGenerator::tranformationFromTf(tf::Transform tfTransfo) {
-    tf::Quaternion tfQuat = tfTransfo.getRotation();
-    Eigen::Quaternionf eigenQuat = Eigen::Quaternionf(
-            tfQuat.w(), tfQuat.x(), tfQuat.y(), tfQuat.z());
-
-    tf::Vector3 tfTranslation = tfTransfo.getOrigin();
-    Eigen::Vector3f translation = Eigen::Vector3f(
-            tfTranslation.x(), tfTranslation.y(), tfTranslation.z());
-
-    return Eigen::Matrix4f::Identity();
 }

@@ -54,7 +54,8 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
 add_executable(bag_to_dataset 
     src/bag_to_dataset.cpp
     src/DatasetGenerator.cpp
-    src/IcpOdometry.cpp)
+    src/IcpOdometry.cpp
+    src/Conversion.cpp)
 target_link_libraries(bag_to_dataset 
     ${catkin_LIBRARIES}
     ${libpointmatcher_LIBRARIES}
