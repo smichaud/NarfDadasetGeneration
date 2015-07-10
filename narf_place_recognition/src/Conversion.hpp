@@ -11,8 +11,8 @@ namespace Conversion {
     Eigen::Quaternionf tfToEigen(tf::Quaternion tfQuat);
     tf::Quaternion eigenToTf(Eigen::Quaternionf eigenQuat);
 
-    tf::Vector3 eigenToTf(Eigen::Vector3f eigenTranslation);
-    Eigen::Vector3f tfToEigen(tf::Vector3 tfTranslation);
+    tf::Vector3 eigenToTf(Eigen::Translation3f eigenTranslation);
+    Eigen::Translation3f tfToEigen(tf::Vector3 tfTranslation);
 
     Eigen::Transform<float, 3, Eigen::Affine> tranformationFromTf(
             tf::Transform tfTransfo);

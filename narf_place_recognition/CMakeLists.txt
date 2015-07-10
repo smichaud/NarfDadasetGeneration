@@ -51,6 +51,7 @@ include_directories(include
     )
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
+
 add_executable(bag_to_dataset
     src/bag_to_dataset.cpp
     src/DatasetGenerator.cpp
@@ -62,13 +63,13 @@ target_link_libraries(bag_to_dataset
     ${Boost_LIBRARIES}
     )
 
-catkin_add_gtest(
-    quick_test
+catkin_add_gtest(verif
+    test/main.cpp
     test/quick_test.cpp
     src/DatasetGenerator.cpp
     src/IcpOdometry.cpp
     src/Conversion.cpp)
-target_link_libraries(quick_test
+target_link_libraries(verif
     ${libpointmatcher_LIBRARIES}
     ${catkin_LIBRARIES}
     ${Boost_LIBRARIES}

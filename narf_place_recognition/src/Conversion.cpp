@@ -11,12 +11,12 @@ namespace Conversion {
                 eigenQuat.x(), eigenQuat.y(), eigenQuat.z(), eigenQuat.w());
     }
 
-    Eigen::Vector3f tfToEigen(tf::Vector3 tfTranslation) {
-        return Eigen::Vector3f(
+    Eigen::Translation3f tfToEigen(tf::Vector3 tfTranslation) {
+        return Eigen::Translation3f(
                 tfTranslation.x(), tfTranslation.y(), tfTranslation.z());
     }
 
-    tf::Vector3 eigenToTf(Eigen::Vector3f eigenTranslation) {
+    tf::Vector3 eigenToTf(Eigen::Translation3f eigenTranslation) {
         return tf::Vector3(eigenTranslation.x(), eigenTranslation.y(),
                 eigenTranslation.z());
     }
@@ -24,13 +24,13 @@ namespace Conversion {
     Eigen::Matrix4f matrixFromTf(
             tf::Transform tfTransfo) {
         Eigen::Quaternionf eigenQuat = tfToEigen(tfTransfo.getRotation());
-        Eigen::Vector3f eigenTranslation = tfToEigen(tfTransfo.getOrigin());
+        Eigen::Transform<float,3,Eigen::Affine> rotation(eigenQuat);
+        Eigen::Translation3f translation =
+            tfToEigen(tfTransfo.getOrigin());
 
-        //Eigen::Transform<float,3,Eigen::Affine> rotation(eigenQuat);
-        //Eigen::Transform<float,3,Eigen::Affine> translation(eigenTranslation);
-        //Eigen::Transform<float,3,Eigen::Affine> transform =
-            //rotation*translation;
+        Eigen::Transform<float,3,Eigen::Affine> transform =
+            rotation*translation;
 
-        return Eigen::Matrix4f::Identity();
+        return transform.matrix();
     }
 }
