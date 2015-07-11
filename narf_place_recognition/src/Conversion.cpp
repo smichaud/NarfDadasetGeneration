@@ -21,16 +21,11 @@ namespace Conversion {
                 eigenTranslation.z());
     }
 
-    Eigen::Matrix4f matrixFromTf(
-            tf::Transform tfTransfo) {
+    Eigen::Matrix4f tfToEigen(tf::Transform tfTransfo) {
         Eigen::Quaternionf eigenQuat = tfToEigen(tfTransfo.getRotation());
-        Eigen::Transform<float,3,Eigen::Affine> rotation(eigenQuat);
-        Eigen::Translation3f translation =
-            tfToEigen(tfTransfo.getOrigin());
+        Eigen::Translation3f translation = tfToEigen(tfTransfo.getOrigin());
+        Eigen::Transform<float,3,Eigen::Affine> output = translation*eigenQuat;
 
-        Eigen::Transform<float,3,Eigen::Affine> transform =
-            rotation*translation;
-
-        return transform.matrix();
+        return output.matrix();
     }
 }

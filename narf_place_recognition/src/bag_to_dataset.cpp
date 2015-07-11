@@ -18,10 +18,12 @@ int main(int argc, char **argv) {
     ros::NodeHandle nodeHandle("~");
 
     string bagFile;
+    string icpConfigPath;
     string cloudTopic;
     string poseTopic;
     string outputPath;
     nodeHandle.param("bagFile", bagFile, string(""));
+    nodeHandle.param("icpConfigPath", bagFile, string(""));
     nodeHandle.param("cloudTopic", cloudTopic, string("/cloud"));
     nodeHandle.param("poseTopic", poseTopic,
     string("/robot_pose_ekf/odom_combined"));
@@ -35,7 +37,7 @@ int main(int argc, char **argv) {
     bag.open(bagFile, rosbag::bagmode::Read);
     rosbag::View view(bag, rosbag::TopicQuery(topics));
 
-    DatasetGenerator datasetGenerator(outputPath);
+    DatasetGenerator datasetGenerator(outputPath, icpConfigPath);
     BOOST_FOREACH(rosbag::MessageInstance const msg, view) {
     datasetGenerator.manageOdometryMsg(msg);
     datasetGenerator.managePointCloudMsg(msg);
@@ -44,13 +46,4 @@ int main(int argc, char **argv) {
     bag.close();
 
     ROS_INFO("bag_to_dataset processing done");
-
-    //const char *refFile("/home/smichaud/Desktop/pc0.vtk");
-    //const char *dataFile("/home/smichaud/Desktop/pc1.vtk");
-    //const PointCloud startCloud(PointCloud::load(dataFile));
-    //const PointCloud endCloud(PointCloud::load(refFile));
-    //Transformation initTransfo = Transformation::Identity();
-
-    //icpodometry::getTransfo(startCloud, endCloud, initTransfo,
-            //"/home/smichaud/Workspace/NarfDadasetGeneration/narf_place_recognition/config/sick_icp.yaml");
 }

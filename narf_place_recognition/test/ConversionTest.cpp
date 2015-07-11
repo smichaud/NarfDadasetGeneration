@@ -3,39 +3,56 @@
 #include "Conversion.hpp"
 #include <ros/ros.h>
 #include <Eigen/Dense>
+#include <cmath>
 #include <tf/transform_datatypes.h>
 
 TEST(Conversion, QuarternionsTfToEigenAreEquals) {
-    float x = 2;
-    float y = 1;
-    float z = 3;
-    float w = 3;
-    tf::Quaternion tfQuat = tf::Quaternion(x, y, z, w);
+    tf::Quaternion tfQuat = tf::createQuaternionFromRPY(
+            M_PI_4, M_PI_4, M_PI_4);
 
     Eigen::Quaternionf eigenQuat = Conversion::tfToEigen(tfQuat);
 
-    ASSERT_EQ(eigenQuat.x(), tfQuat.x());
-    ASSERT_EQ(eigenQuat.y(), tfQuat.y());
-    ASSERT_EQ(eigenQuat.z(), tfQuat.z());
-    ASSERT_EQ(eigenQuat.w(), tfQuat.w());
+    ASSERT_FLOAT_EQ(eigenQuat.x(), tfQuat.x());
+    ASSERT_FLOAT_EQ(eigenQuat.y(), tfQuat.y());
+    ASSERT_FLOAT_EQ(eigenQuat.z(), tfQuat.z());
+    ASSERT_FLOAT_EQ(eigenQuat.w(), tfQuat.w());
 }
 
 TEST(Conversion, QuarternionsEigenToTfAreEquals) {
-    float x = 2;
-    float y = 1;
-    float z = 3;
-    float w = 3;
-    Eigen::Quaternionf eigenQuat = Eigen::Quaternionf(w, x, y, z);
+    Eigen::AngleAxisf rollAngle(M_PI_4, Eigen::Vector3f::UnitZ());
+    Eigen::AngleAxisf yawAngle(M_PI_4, Eigen::Vector3f::UnitY());
+    Eigen::AngleAxisf pitchAngle(M_PI_4, Eigen::Vector3f::UnitX());
+
+    Eigen::Quaternionf eigenQuat = rollAngle * yawAngle * pitchAngle;
 
     tf::Quaternion tfQuat = Conversion::eigenToTf(eigenQuat);
 
-    ASSERT_EQ(tfQuat.x(), eigenQuat.x());
-    ASSERT_EQ(tfQuat.y(), eigenQuat.y());
-    ASSERT_EQ(tfQuat.z(), eigenQuat.z());
-    ASSERT_EQ(tfQuat.w(), eigenQuat.w());
+    ASSERT_FLOAT_EQ(tfQuat.x(), eigenQuat.x());
+    ASSERT_FLOAT_EQ(tfQuat.y(), eigenQuat.y());
+    ASSERT_FLOAT_EQ(tfQuat.z(), eigenQuat.z());
+    ASSERT_FLOAT_EQ(tfQuat.w(), eigenQuat.w());
 }
 
-//int main(int argc, char **argv){
-    //testing::InitGoogleTest(&argc, argv);
-    //return RUN_ALL_TESTS();
-//}
+TEST(Conversion, EigenTransformationMatrixFromTfIsValid) {
+    tf::Vector3 tfTranslation = tf::Vector3(1, 2, 3);
+    tf::Quaternion tfQuat = tf::createQuaternionFromRPY(
+            M_PI_4, M_PI_4, M_PI_4);
+
+    tf::Transform tfTransfo;
+    tfTransfo.setOrigin(tfTranslation);
+    tfTransfo.setRotation(tfQuat);
+
+    Eigen::Matrix4f eigenMatrix = Conversion::tfToEigen(tfTransfo);
+    Eigen::Transform<float,3,Eigen::Affine> eigenTransform(eigenMatrix);
+    Eigen::Quaternionf eigenQuat =
+        Eigen::Quaternionf(eigenTransform.rotation());
+
+    ASSERT_FLOAT_EQ(eigenTransform.translation().x(), tfTranslation.x());
+    ASSERT_FLOAT_EQ(eigenTransform.translation().y(), tfTranslation.y());
+    ASSERT_FLOAT_EQ(eigenTransform.translation().z(), tfTranslation.z());
+
+    ASSERT_FLOAT_EQ(eigenQuat.x(), tfTransfo.getRotation().x());
+    ASSERT_FLOAT_EQ(eigenQuat.y(), tfTransfo.getRotation().y());
+    ASSERT_FLOAT_EQ(eigenQuat.z(), tfTransfo.getRotation().z());
+    ASSERT_FLOAT_EQ(eigenQuat.w(), tfTransfo.getRotation().w());
+}

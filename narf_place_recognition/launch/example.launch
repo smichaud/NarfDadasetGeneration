@@ -1,6 +1,7 @@
 <launch>
     <node pkg="narf_place_recognition" type="bag_to_dataset" name="bag_to_dataset" output="screen">
         <param name="bagFile" type="string" value="/home/smichaud/Workspace/StederDatasetTest/test3.bag"/>
+        <param name="bagFile" type="string" value="/home/smichaud/Workspace/NarfDadasetGeneration/narf_place_recognition/config/sick_icp.yaml"/>
         <param name="cloudTopic" type="string" value="/cloud"/>
         <param name="poseTopic" type="string" value="/robot_pose_ekf/odom_combined"/>
         <param name="outputPath" type="string" value="/home/smichaud/Workspace/StederDatasetTest/Output/"/>

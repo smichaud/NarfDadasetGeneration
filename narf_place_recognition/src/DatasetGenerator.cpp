@@ -12,8 +12,10 @@
 using PointMatcher_ros::rosMsgToPointMatcherCloud;
 using boost::shared_ptr;
 
-DatasetGenerator::DatasetGenerator(const std::string outputPath):
+DatasetGenerator::DatasetGenerator(const std::string outputPath, 
+        const std::string icpConfigPath):
     outputPath(outputPath),
+    icpConfigPath(icpConfigPath),
     pointCloudIndex(0),
     numSuffixWidth(4),
     lastCorrectedPose(tf::Pose::getIdentity()) {
@@ -51,11 +53,10 @@ void DatasetGenerator::computeCloudOdometry(
         tf::Pose endPose(this->lastMsgPose);
         tf::Transform poseDiff = startPose.inverseTimes(endPose);
 
-        //Conversion::tranformationFromTf(poseDiff);
-        //Transformation initTransfo = Conversion::tranformationFromTf(poseDiff);
-        //IcpOdometry::getTransfo(*this->lastPointCloud, *currentCloud,
-                //initTransfo,
-                //"/home/smichaud/Workspace/NarfDadasetGeneration/narf_place_recognition/config/sick_icp.yaml");
+        Eigen::Matrix4f initTransfo = Conversion::tfToEigen(poseDiff);
+        // [TODO]: Grab final odom and save it - 2015-07-10 10:31pm
+        IcpOdometry::getTransfo(*this->lastPointCloud, *currentCloud,
+                initTransfo, this->icpConfigPath);
     }
     this->lastCloudPose = this->lastMsgPose;
     //saveOdom();

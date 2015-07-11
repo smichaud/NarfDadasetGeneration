@@ -15,6 +15,7 @@
 class DatasetGenerator {
     private:
         std::string outputPath;
+        std::string icpConfigPath;
         int pointCloudIndex;
         const int numSuffixWidth;
 
@@ -24,7 +25,8 @@ class DatasetGenerator {
         boost::shared_ptr<PM::DataPoints> lastPointCloud;
 
     public:
-        DatasetGenerator(const std::string outputPath);
+        DatasetGenerator(const std::string outputPath,
+                const std::string icpConfigPath);
         void manageOdometryMsg(rosbag::MessageInstance const &msg);
         void managePointCloudMsg(rosbag::MessageInstance const &msg);
 

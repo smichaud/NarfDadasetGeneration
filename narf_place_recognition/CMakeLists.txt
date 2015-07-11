@@ -63,13 +63,13 @@ target_link_libraries(bag_to_dataset
     ${Boost_LIBRARIES}
     )
 
-catkin_add_gtest(verif
+catkin_add_gtest(Tests
     test/main.cpp
-    test/quick_test.cpp
+    test/ConversionTest.cpp
     src/DatasetGenerator.cpp
     src/IcpOdometry.cpp
     src/Conversion.cpp)
-target_link_libraries(verif
+target_link_libraries(Tests
     ${libpointmatcher_LIBRARIES}
     ${catkin_LIBRARIES}
     ${Boost_LIBRARIES}
