@@ -23,7 +23,7 @@ int main(int argc, char **argv) {
     string poseTopic;
     string outputPath;
     nodeHandle.param("bagFile", bagFile, string(""));
-    nodeHandle.param("icpConfigPath", bagFile, string(""));
+    nodeHandle.param("icpConfigPath", icpConfigPath, string(""));
     nodeHandle.param("cloudTopic", cloudTopic, string("/cloud"));
     nodeHandle.param("poseTopic", poseTopic,
     string("/robot_pose_ekf/odom_combined"));
