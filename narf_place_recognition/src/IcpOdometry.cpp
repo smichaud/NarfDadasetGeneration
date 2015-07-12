@@ -2,11 +2,13 @@
 #include <fstream>
 
 namespace IcpOdometry {
-    Transformation getTransfo(
+    //Note: Cloud origin == sensor. Therefore endCloud must be transformed :)
+    Eigen::Matrix4f getCorrectedTransfo(
             const PointCloud &startCloud,
             const PointCloud &endCloud,
-            Transformation initTransfo,
-            const std::string &configFile) {
+            Eigen::Matrix4f initTransfo,
+            const std::string &configFile,
+            const std::string &cloudsOutputPath) {
         PM::ICP icp;
 
         std::ifstream configFileStream(configFile.c_str());
@@ -24,22 +26,19 @@ namespace IcpOdometry {
             create("RigidTransformation");
 
         const PointCloud initializedCloud =
-            rigidTrans->compute(startCloud, approxTransfo);
+            rigidTrans->compute(endCloud, approxTransfo);
         PM::TransformationParameters errorTransfo =
-            icp(initializedCloud, endCloud);
+            icp(initializedCloud, startCloud);
 
-        // [TODO]: Remove these lines when calibrated - 2015-07-07 01:46pm
-        std::cout << "match ratio: "
-            << icp.errorMinimizer->getWeightedPointUsedRatio()
-            << std::endl;
+        if(!cloudsOutputPath.empty()) {
+            PointCloud adjustedCloud(initializedCloud);
+            icp.transformations.apply(adjustedCloud, errorTransfo);
 
-        PointCloud adjustedCloud(initializedCloud);
-        icp.transformations.apply(adjustedCloud, errorTransfo);
-
-        std::string outputBaseFile = "/home/smichaud/Desktop/test";
-        endCloud.save(outputBaseFile + "_ref.vtk");
-        startCloud.save(outputBaseFile + "_data_in.vtk");
-        adjustedCloud.save(outputBaseFile + "_data_out.vtk");
+            startCloud.save(cloudsOutputPath + "_start_cloud.vtk");
+            endCloud.save(cloudsOutputPath + "_end_cloud_ref.vtk");
+            initializedCloud.save(cloudsOutputPath + "_init_cloud.vtk");
+            adjustedCloud.save(cloudsOutputPath + "_final_cloud.vtk");
+        }
 
         return errorTransfo*approxTransfo;
     }

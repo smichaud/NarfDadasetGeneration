@@ -9,11 +9,12 @@
 #include <Eigen/Dense>
 
 namespace IcpOdometry {
-    Transformation getTransfo(
+    Eigen::Matrix4f getCorrectedTransfo(
             const PointCloud &startCloud,
             const PointCloud &endCloud,
-            Transformation initTransfo,
-            const std::string &configFile);
+            Eigen::Matrix4f initTransfo,
+            const std::string &configFile,
+            const std::string &cloudsOutputPath = "");
 }
 
 #endif

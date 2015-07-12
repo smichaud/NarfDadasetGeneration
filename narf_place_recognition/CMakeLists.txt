@@ -66,6 +66,7 @@ target_link_libraries(bag_to_dataset
 catkin_add_gtest(Tests
     test/main.cpp
     test/ConversionTest.cpp
+    test/IcpOdometryTest.cpp
     src/DatasetGenerator.cpp
     src/IcpOdometry.cpp
     src/Conversion.cpp)
@@ -74,3 +75,12 @@ target_link_libraries(Tests
     ${catkin_LIBRARIES}
     ${Boost_LIBRARIES}
     )
+
+# Copy the resources to the bin directory
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/config
+    DESTINATION ${CMAKE_BINARY_DIR}/${PROJECT_NAME}
+    )
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/misc
+    DESTINATION ${CMAKE_BINARY_DIR}/${PROJECT_NAME}
+    )
+

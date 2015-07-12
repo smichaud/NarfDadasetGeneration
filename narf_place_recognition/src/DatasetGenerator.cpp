@@ -54,11 +54,11 @@ void DatasetGenerator::computeCloudOdometry(
         tf::Transform poseDiff = startPose.inverseTimes(endPose);
 
         Eigen::Matrix4f initTransfo = Conversion::tfToEigen(poseDiff);
-        // [TODO]: Grab final odom and save it - 2015-07-10 10:31pm
-        IcpOdometry::getTransfo(*this->lastPointCloud, *currentCloud,
+        IcpOdometry::getCorrectedTransfo(*this->lastPointCloud, *currentCloud,
                 initTransfo, this->icpConfigPath);
     }
     this->lastCloudPose = this->lastMsgPose;
+    
     //saveOdom();
 }
 

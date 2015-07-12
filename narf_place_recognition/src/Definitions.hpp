@@ -6,6 +6,5 @@
 
 typedef PointMatcher<float> PM;
 typedef PM::DataPoints PointCloud;
-typedef Eigen::Matrix4f Transformation;
 
 #endif

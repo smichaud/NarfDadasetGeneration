@@ -36,7 +36,7 @@ class DatasetGenerator {
         void saveOdom();
         std::string generateCloudFilename();
         std::string getPaddedNum(const int &numSuffix, const int width);
-        Transformation tranformationFromTf(tf::Transform tfTransfo);
+        Eigen::Matrix4f tranformationFromTf(tf::Transform tfTransfo);
 };
 
 #endif
