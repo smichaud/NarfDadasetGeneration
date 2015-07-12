@@ -21,7 +21,7 @@ class DatasetGenerator {
 
         tf::Pose lastMsgPose;
         tf::Pose lastCloudPose;
-        tf::Pose lastCorrectedPose;
+        Eigen::Matrix4f lastCorrectedPose;
         boost::shared_ptr<PM::DataPoints> lastPointCloud;
 
     public:
@@ -36,7 +36,6 @@ class DatasetGenerator {
         void saveOdom();
         std::string generateCloudFilename();
         std::string getPaddedNum(const int &numSuffix, const int width);
-        Eigen::Matrix4f tranformationFromTf(tf::Transform tfTransfo);
 };
 
 #endif

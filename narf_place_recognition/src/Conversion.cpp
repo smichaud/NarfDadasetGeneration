@@ -28,4 +28,18 @@ namespace Conversion {
 
         return output.matrix();
     }
+
+    Eigen::Vector3f getRPY(Eigen::Matrix4f transfo) {
+        Eigen::Quaternionf eigenQuat = Eigen::Quaternionf(
+                Eigen::Matrix3f(transfo.block(0,0,3,3)));
+
+        double roll, pitch, yaw;
+        tf::Matrix3x3(eigenToTf(eigenQuat)).getRPY(roll, pitch, yaw);
+
+        return Eigen::Vector3f(roll, pitch, yaw);
+    }
+
+    Eigen::Translation3f getTranslation(Eigen::Matrix4f transfo) {
+        return Eigen::Translation3f(transfo.block(0,2,3,1));
+    }
 }

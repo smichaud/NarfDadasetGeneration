@@ -12,13 +12,13 @@
 using PointMatcher_ros::rosMsgToPointMatcherCloud;
 using boost::shared_ptr;
 
-DatasetGenerator::DatasetGenerator(const std::string outputPath, 
+DatasetGenerator::DatasetGenerator(const std::string outputPath,
         const std::string icpConfigPath):
     outputPath(outputPath),
     icpConfigPath(icpConfigPath),
     pointCloudIndex(0),
     numSuffixWidth(4),
-    lastCorrectedPose(tf::Pose::getIdentity()) {
+    lastCorrectedPose(Eigen::Matrix4f::Identity()) {
     }
 
 void DatasetGenerator::manageOdometryMsg(rosbag::MessageInstance const &msg) {
@@ -54,12 +54,16 @@ void DatasetGenerator::computeCloudOdometry(
         tf::Transform poseDiff = startPose.inverseTimes(endPose);
 
         Eigen::Matrix4f initTransfo = Conversion::tfToEigen(poseDiff);
-        IcpOdometry::getCorrectedTransfo(*this->lastPointCloud, *currentCloud,
+        Eigen::Matrix4f icpOdom = IcpOdometry::getCorrectedTransfo(
+                *this->lastPointCloud, *currentCloud,
                 initTransfo, this->icpConfigPath);
+
+        // [TODO]: Make sure this works - 2015-07-12 02:18pm
+        this->lastCorrectedPose = icpOdom*this->lastCorrectedPose;
     }
     this->lastCloudPose = this->lastMsgPose;
-    
-    //saveOdom();
+
+    saveOdom();
 }
 
 void DatasetGenerator::saveOdom() {
@@ -67,17 +71,19 @@ void DatasetGenerator::saveOdom() {
     filename += this->getPaddedNum(this->pointCloudIndex, this->numSuffixWidth);
     filename += "_info.dat";
 
-    //Eigen::Vector3f rollPitchYaw = getRollPitchYaw(
-    //this->lastCorrectedPose.orientation);
+    Eigen::Translation3f translation = Conversion::getTranslation(
+            this->lastCorrectedPose);
+    Eigen::Vector3f rollPitchYaw = Conversion::getRPY(
+            this->lastCorrectedPose);
 
     std::ofstream file;
     file.open(filename.c_str());
-    //file << this->lastCorrectedPose.position.x << ", "
-    //<< this->lastCorrectedPose.position.y  << ", "
-    //<< this->lastCorrectedPose.position.z << ", "
-    //<< rollPitchYaw(0) << ", "
-    //<< rollPitchYaw(1) << ", "
-    //<< rollPitchYaw(2) << std::endl;
+    file << translation.x() << ", "
+    << translation.y()  << ", "
+    << translation.z() << ", "
+    << rollPitchYaw(0) << ", "
+    << rollPitchYaw(1) << ", "
+    << rollPitchYaw(2) << std::endl;
 
     file.close();
 }

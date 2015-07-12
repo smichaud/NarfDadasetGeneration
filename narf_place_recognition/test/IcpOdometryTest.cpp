@@ -15,7 +15,7 @@ TEST(IcpOdometry, QuickTest) {
     initTransfo(0,3) = 4.0;
 
     std::string configFile = "config/sick_icp.yaml";
-    std::string output = "misc/test";
+    std::string output = "";
 
     Eigen::Matrix4f finalTransfo = IcpOdometry::getCorrectedTransfo(
             startCloud, endCloud, initTransfo, configFile, output);

@@ -39,8 +39,8 @@ int main(int argc, char **argv) {
 
     DatasetGenerator datasetGenerator(outputPath, icpConfigPath);
     BOOST_FOREACH(rosbag::MessageInstance const msg, view) {
-    datasetGenerator.manageOdometryMsg(msg);
-    datasetGenerator.managePointCloudMsg(msg);
+        datasetGenerator.manageOdometryMsg(msg);
+        datasetGenerator.managePointCloudMsg(msg);
     }
 
     bag.close();

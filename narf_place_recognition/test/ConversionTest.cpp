@@ -56,3 +56,37 @@ TEST(Conversion, EigenTransformationMatrixFromTfIsValid) {
     ASSERT_FLOAT_EQ(eigenQuat.z(), tfTransfo.getRotation().z());
     ASSERT_FLOAT_EQ(eigenQuat.w(), tfTransfo.getRotation().w());
 }
+
+TEST(Conversion, getRpyIsValid) {
+    float roll = 0.1;
+    float pitch = 0.5;
+    float yaw = 1;
+
+    tf::Transform tfTransfo = tf::Transform(
+            tf::createQuaternionFromRPY(roll, pitch, yaw));
+
+    Eigen::Matrix4f mat = Conversion::tfToEigen(tfTransfo);
+    Eigen::Vector3f result = Conversion::getRPY(mat);
+
+    float tolerance = 0.000002;
+    ASSERT_NEAR(result(0), roll, tolerance);
+    ASSERT_NEAR(result(1), pitch, tolerance);
+    ASSERT_NEAR(result(2), yaw, tolerance);
+}
+
+TEST(Conversion, getTranslationIsValid) {
+    float x = 1;
+    float y = 2;
+    float z = 3;
+
+    Eigen::Matrix4f mat = Eigen::Matrix4f::Identity();
+    mat(0,2) = x;
+    mat(1,2) = y;
+    mat(2,2) = z;
+
+    Eigen::Translation3f result = Conversion::getTranslation(mat);
+
+    ASSERT_FLOAT_EQ(result.x(), x);
+    ASSERT_FLOAT_EQ(result.y(), y);
+    ASSERT_FLOAT_EQ(result.z(), z);
+}

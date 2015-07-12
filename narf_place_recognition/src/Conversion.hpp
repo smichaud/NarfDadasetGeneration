@@ -15,6 +15,9 @@ namespace Conversion {
     tf::Vector3 eigenToTf(Eigen::Translation3f eigenTranslation);
 
     Eigen::Matrix4f tfToEigen(tf::Transform tfTransfo);
+
+    Eigen::Vector3f getRPY(Eigen::Matrix4f transfo);
+    Eigen::Translation3f getTranslation(Eigen::Matrix4f transfo);
 }
 
 #endif
