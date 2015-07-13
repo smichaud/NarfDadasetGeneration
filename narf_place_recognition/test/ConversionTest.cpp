@@ -80,13 +80,22 @@ TEST(Conversion, getTranslationIsValid) {
     float z = 3;
 
     Eigen::Matrix4f mat = Eigen::Matrix4f::Identity();
-    mat(0,2) = x;
-    mat(1,2) = y;
-    mat(2,2) = z;
+    mat(0,3) = x;
+    mat(1,3) = y;
+    mat(2,3) = z;
 
     Eigen::Translation3f result = Conversion::getTranslation(mat);
 
     ASSERT_FLOAT_EQ(result.x(), x);
     ASSERT_FLOAT_EQ(result.y(), y);
     ASSERT_FLOAT_EQ(result.z(), z);
+}
+
+TEST(Conversion, getTranslationOnIdentityEqualsZero) {
+    Eigen::Translation3f result = Conversion::getTranslation(
+            Eigen::Matrix4f::Identity());
+
+    ASSERT_FLOAT_EQ(result.x(), 0);
+    ASSERT_FLOAT_EQ(result.y(), 0);
+    ASSERT_FLOAT_EQ(result.z(), 0);
 }

@@ -40,6 +40,6 @@ namespace Conversion {
     }
 
     Eigen::Translation3f getTranslation(Eigen::Matrix4f transfo) {
-        return Eigen::Translation3f(transfo.block(0,2,3,1));
+        return Eigen::Translation3f(transfo.block(0,3,3,1));
     }
 }
