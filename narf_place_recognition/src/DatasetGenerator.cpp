@@ -76,6 +76,15 @@ void DatasetGenerator::saveOdom() {
     Eigen::Vector3f rollPitchYaw = Conversion::getRPY(
             this->lastCorrectedPose);
 
+    std::cout << "=============================================" << std::endl;
+    std::cout << translation.x() << ", "
+    << translation.y()  << ", "
+    << translation.z() << ", "
+    << rollPitchYaw(0) << ", "
+    << rollPitchYaw(1) << ", "
+    << rollPitchYaw(2) << std::endl;
+    std::cout << "=============================================" << std::endl;
+
     std::ofstream file;
     file.open(filename.c_str());
     file << translation.x() << ", "
