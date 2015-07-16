@@ -42,7 +42,12 @@ void DatasetGenerator::managePointCloudMsg(rosbag::MessageInstance const &msg) {
         shared_ptr<PM::DataPoints> cloud(new PM::DataPoints(
                     rosMsgToPointMatcherCloud<float>(*cloudMsg)));
 
-        cloud->save(generateCloudFilename());
+        try{
+            cloud->save(generateCloudFilename());
+        } catch(...) {
+            ROS_ERROR("Unable to save in the directory provided.");
+        }
+        
         if(this->isOdomOutput) {
             this->computeCloudOdometry(cloud);
             this->saveOdom();
