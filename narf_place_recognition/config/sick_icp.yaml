@@ -62,4 +62,4 @@ inspector:
   NullInspector
 
 logger:
-  FileLogger
+     NullLogger
