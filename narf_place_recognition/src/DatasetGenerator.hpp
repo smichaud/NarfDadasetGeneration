@@ -4,7 +4,7 @@
 #include "Definitions.hpp"
 
 #include <rosbag/bag.h>
-#include <rosbag/view.h>
+#include <ros/console.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <tf/transform_datatypes.h>
 
@@ -18,6 +18,8 @@ class DatasetGenerator {
         std::string icpConfigPath;
         int pointCloudIndex;
         const int numSuffixWidth;
+        bool isNextOdomEqualToLast;
+        bool isOdomOutput;
 
         tf::Pose lastMsgPose;
         tf::Pose lastCloudPose;
@@ -26,9 +28,10 @@ class DatasetGenerator {
 
     public:
         DatasetGenerator(const std::string outputPath,
-                const std::string icpConfigPath);
+                const std::string icpConfigPath, bool isOdomOutput = true);
         void manageOdometryMsg(rosbag::MessageInstance const &msg);
         void managePointCloudMsg(rosbag::MessageInstance const &msg);
+        void setNextOdomEqualToLast();
 
     private:
         void computeCloudOdometry(

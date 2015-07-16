@@ -27,12 +27,24 @@ namespace IcpOdometry {
 
         const PointCloud initializedCloud =
             rigidTrans->compute(endCloud, approxTransfo);
-        PM::TransformationParameters errorTransfo =
-            icp(initializedCloud, startCloud);
+        PM::TransformationParameters errorTransfo;
+        try{
+            errorTransfo = icp(initializedCloud, startCloud);
+        } catch(PM::ConvergenceError exception) {
+            errorTransfo = Eigen::Matrix4f::Identity();
+            std::cerr << "ICP was not able to converge." << std::endl;
+            std::cerr << "Initial approximation of transformation will be used."
+                << std::endl;
+        }
 
         if(!cloudsOutputPath.empty()) {
             PointCloud adjustedCloud(initializedCloud);
-            icp.transformations.apply(adjustedCloud, errorTransfo);
+            try {
+                icp.transformations.apply(adjustedCloud, errorTransfo);
+            } catch(...) {
+                std::cerr << "An error occured while trying to apply ICP"
+                    << std::endl;
+            }
 
             startCloud.save(cloudsOutputPath + "_start_cloud.vtk");
             endCloud.save(cloudsOutputPath + "_end_cloud_ref.vtk");

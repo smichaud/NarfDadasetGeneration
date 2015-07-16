@@ -13,11 +13,13 @@ using PointMatcher_ros::rosMsgToPointMatcherCloud;
 using boost::shared_ptr;
 
 DatasetGenerator::DatasetGenerator(const std::string outputPath,
-        const std::string icpConfigPath):
+        const std::string icpConfigPath, const bool isOdomOutput):
     outputPath(outputPath),
     icpConfigPath(icpConfigPath),
     pointCloudIndex(0),
     numSuffixWidth(4),
+    isNextOdomEqualToLast(false),
+    isOdomOutput(isOdomOutput),
     lastCorrectedPose(Eigen::Matrix4f::Identity()) {
     }
 
@@ -35,35 +37,47 @@ void DatasetGenerator::managePointCloudMsg(rosbag::MessageInstance const &msg) {
         msg.instantiate<sensor_msgs::PointCloud2>();
 
     if(cloudMsg != NULL) {
+        ROS_INFO_STREAM("Processing cloud " << this->pointCloudIndex);
+
         shared_ptr<PM::DataPoints> cloud(new PM::DataPoints(
                     rosMsgToPointMatcherCloud<float>(*cloudMsg)));
 
         cloud->save(generateCloudFilename());
-        this->computeCloudOdometry(cloud);
+        if(this->isOdomOutput) {
+            this->computeCloudOdometry(cloud);
+            this->saveOdom();
+        }
 
         this->pointCloudIndex++;
         this->lastPointCloud = cloud;
     }
 }
 
+void DatasetGenerator::setNextOdomEqualToLast() {
+    this->isNextOdomEqualToLast = true;
+}
+
 void DatasetGenerator::computeCloudOdometry(
         shared_ptr<PM::DataPoints> currentCloud) {
     if(this->pointCloudIndex != 0) {
-        tf::Pose startPose(this->lastCloudPose);
-        tf::Pose endPose(this->lastMsgPose);
-        tf::Transform poseDiff = startPose.inverseTimes(endPose);
+        Eigen::Matrix4f initTransfo = Eigen::Matrix4f::Identity();
+        if(this->isNextOdomEqualToLast) {
+            this->isNextOdomEqualToLast = false;
+        } else {
+            tf::Pose startPose(this->lastCloudPose);
+            tf::Pose endPose(this->lastMsgPose);
+            tf::Transform poseDiff = startPose.inverseTimes(endPose);
 
-        Eigen::Matrix4f initTransfo = Conversion::tfToEigen(poseDiff);
+            initTransfo = Conversion::tfToEigen(poseDiff);
+        }
+
         Eigen::Matrix4f icpOdom = IcpOdometry::getCorrectedTransfo(
                 *this->lastPointCloud, *currentCloud,
                 initTransfo, this->icpConfigPath);
 
-        // [TODO]: Make sure this works - 2015-07-12 02:18pm
         this->lastCorrectedPose = icpOdom*this->lastCorrectedPose;
     }
     this->lastCloudPose = this->lastMsgPose;
-
-    saveOdom();
 }
 
 void DatasetGenerator::saveOdom() {
@@ -76,23 +90,22 @@ void DatasetGenerator::saveOdom() {
     Eigen::Vector3f rollPitchYaw = Conversion::getRPY(
             this->lastCorrectedPose);
 
-    std::cout << "=============================================" << std::endl;
-    std::cout << translation.x() << ", "
-    << translation.y()  << ", "
-    << translation.z() << ", "
-    << rollPitchYaw(0) << ", "
-    << rollPitchYaw(1) << ", "
-    << rollPitchYaw(2) << std::endl;
-    std::cout << "=============================================" << std::endl;
+    ROS_INFO_STREAM("Cloud odom (x,y,z,r,p,y): "
+            << translation.x() << ", "
+            << translation.y()  << ", "
+            << translation.z() << ", "
+            << rollPitchYaw(0) << ", "
+            << rollPitchYaw(1) << ", "
+            << rollPitchYaw(2));
 
     std::ofstream file;
     file.open(filename.c_str());
     file << translation.x() << ", "
-    << translation.y()  << ", "
-    << translation.z() << ", "
-    << rollPitchYaw(0) << ", "
-    << rollPitchYaw(1) << ", "
-    << rollPitchYaw(2) << std::endl;
+        << translation.y()  << ", "
+        << translation.z() << ", "
+        << rollPitchYaw(0) << ", "
+        << rollPitchYaw(1) << ", "
+        << rollPitchYaw(2) << std::endl;
 
     file.close();
 }
