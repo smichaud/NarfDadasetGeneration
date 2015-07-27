@@ -28,6 +28,7 @@ int main(int argc, char **argv) {
     string cloudTopic;
     string poseTopic;
     bool isOdomOutput;
+    int pointCloudKeepOneOutOf;
     nodeHandle.param("bagFiles", bagFilesArg, string(""));
     nodeHandle.param("outputPath", outputPath, string(""));
     nodeHandle.param("icpConfigPath", icpConfigPath, string(""));
@@ -35,12 +36,15 @@ int main(int argc, char **argv) {
     nodeHandle.param("poseTopic", poseTopic,
             string("/robot_pose_ekf/odom_combined"));
     nodeHandle.param("isOdomOutput", isOdomOutput, bool(true));
+    nodeHandle.param("pointCloudKeepOneOutOf", pointCloudKeepOneOutOf,
+            int(1));
 
     vector<string> topics;
     topics.push_back(cloudTopic);
     topics.push_back(poseTopic);
 
-    DatasetGenerator datasetGenerator(outputPath, icpConfigPath, isOdomOutput);
+    DatasetGenerator datasetGenerator(outputPath, icpConfigPath, isOdomOutput,
+            pointCloudKeepOneOutOf);
 
     vector<string> bagFiles = parseBagFiles(bagFilesArg);
 
@@ -63,9 +67,6 @@ int main(int argc, char **argv) {
             currentBag.close();
         } catch(rosbag::BagIOException exception) {
             ROS_WARN("Unable to open the bag file:");
-            ROS_WARN_STREAM(currentBagFile);
-        } catch(...) {
-            ROS_WARN("Unexpected error occured for the bag file:");
             ROS_WARN_STREAM(currentBagFile);
         }
         bagCount++;

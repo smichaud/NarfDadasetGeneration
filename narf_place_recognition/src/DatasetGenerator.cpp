@@ -12,15 +12,20 @@
 using PointMatcher_ros::rosMsgToPointMatcherCloud;
 using boost::shared_ptr;
 
-DatasetGenerator::DatasetGenerator(const std::string outputPath,
-        const std::string icpConfigPath, const bool isOdomOutput):
+DatasetGenerator::DatasetGenerator(
+        const std::string outputPath,
+        const std::string icpConfigPath,
+        const bool isOdomOutput,
+        int pointCloudKeepOneOutOf):
     outputPath(outputPath),
     icpConfigPath(icpConfigPath),
+    totalPointCloudIndex(0),
     pointCloudIndex(0),
     numSuffixWidth(4),
     isNextOdomEqualToLast(false),
     isOdomOutput(isOdomOutput),
-    lastCorrectedPose(Eigen::Matrix4f::Identity()) {
+    lastCorrectedPose(Eigen::Matrix4f::Identity()),
+    pointCloudKeepOneOutOf(pointCloudKeepOneOutOf) {
     }
 
 void DatasetGenerator::manageOdometryMsg(rosbag::MessageInstance const &msg) {
@@ -37,24 +42,27 @@ void DatasetGenerator::managePointCloudMsg(rosbag::MessageInstance const &msg) {
         msg.instantiate<sensor_msgs::PointCloud2>();
 
     if(cloudMsg != NULL) {
-        ROS_INFO_STREAM("Processing cloud " << this->pointCloudIndex);
+        if(this->totalPointCloudIndex % this->pointCloudKeepOneOutOf == 0) {
+            ROS_INFO_STREAM("Processing cloud " << this->pointCloudIndex);
 
-        shared_ptr<PM::DataPoints> cloud(new PM::DataPoints(
-                    rosMsgToPointMatcherCloud<float>(*cloudMsg)));
+            shared_ptr<PM::DataPoints> cloud(new PM::DataPoints(
+                        rosMsgToPointMatcherCloud<float>(*cloudMsg)));
 
-        try{
-            cloud->save(generateCloudFilename());
-        } catch(...) {
-            ROS_ERROR("Unable to save in the directory provided.");
+            try{
+                cloud->save(generateCloudFilename());
+            } catch(...) {
+                ROS_ERROR("Unable to save in the directory provided.");
+            }
+
+            if(this->isOdomOutput) {
+                this->computeCloudOdometry(cloud);
+                this->saveOdom();
+            }
+
+            this->pointCloudIndex++;
+            this->lastPointCloud = cloud;
         }
-        
-        if(this->isOdomOutput) {
-            this->computeCloudOdometry(cloud);
-            this->saveOdom();
-        }
-
-        this->pointCloudIndex++;
-        this->lastPointCloud = cloud;
+        this->totalPointCloudIndex++;
     }
 }
 
@@ -95,7 +103,7 @@ void DatasetGenerator::saveOdom() {
     Eigen::Vector3f rollPitchYaw = Conversion::getRPY(
             this->lastCorrectedPose);
 
-    ROS_INFO_STREAM("Cloud odom (x,y,z,r,p,y): "
+    ROS_INFO_STREAM("Odometry (x,y,z,r,p,y): "
             << translation.x() << ", "
             << translation.y()  << ", "
             << translation.z() << ", "
@@ -105,7 +113,8 @@ void DatasetGenerator::saveOdom() {
 
     std::ofstream file;
     file.open(filename.c_str());
-    file << translation.x() << ", "
+    file << "Odometry: "
+        << translation.x() << ", "
         << translation.y()  << ", "
         << translation.z() << ", "
         << rollPitchYaw(0) << ", "
