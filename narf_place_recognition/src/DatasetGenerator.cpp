@@ -118,11 +118,11 @@ void DatasetGenerator::saveOdom() {
     std::ofstream file;
     file.open(filename.c_str());
     file << "Odometry: "
-        << translation.x() << ", "
-        << translation.y()  << ", "
-        << translation.z() << ", "
-        << rollPitchYaw(0) << ", "
-        << rollPitchYaw(1) << ", "
+        << translation.x() << " "
+        << translation.y()  << " "
+        << translation.z() << " "
+        << rollPitchYaw(0) << " "
+        << rollPitchYaw(1) << " "
         << rollPitchYaw(2) << std::endl;
 
     file.close();
