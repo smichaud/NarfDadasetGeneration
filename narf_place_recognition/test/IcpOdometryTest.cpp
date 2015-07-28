@@ -20,8 +20,6 @@ TEST(IcpOdometry, QuickTest) {
     Eigen::Matrix4f finalTransfo = IcpOdometry::getCorrectedTransfo(
             startCloud, endCloud, initTransfo, configFile, output);
 
-    std::cout << finalTransfo << std::endl;
-
     float expectedX = 3.8;
     float expectedY = 0.3;
     float expectedZ = -0.03;

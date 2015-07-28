@@ -74,6 +74,7 @@ void DatasetGenerator::computeCloudOdometry(
         shared_ptr<PM::DataPoints> currentCloud) {
     if(this->pointCloudIndex != 0) {
         Eigen::Matrix4f initTransfo = Eigen::Matrix4f::Identity();
+
         if(this->isNextOdomEqualToLast) {
             this->isNextOdomEqualToLast = false;
         } else {
@@ -85,11 +86,13 @@ void DatasetGenerator::computeCloudOdometry(
         }
 
         Eigen::Matrix4f icpOdom = IcpOdometry::getCorrectedTransfo(
-                *this->lastPointCloud, *currentCloud,
-                initTransfo, this->icpConfigPath);
+        *this->lastPointCloud, *currentCloud,
+        initTransfo, this->icpConfigPath);
 
-        this->lastCorrectedPose = icpOdom*this->lastCorrectedPose;
+        this->lastCorrectedPose = Conversion::getPoseComposition(
+                this->lastCorrectedPose, icpOdom);
     }
+
     this->lastCloudPose = this->lastMsgPose;
 }
 
@@ -104,12 +107,13 @@ void DatasetGenerator::saveOdom() {
             this->lastCorrectedPose);
 
     ROS_INFO_STREAM("Odometry (x,y,z,r,p,y): "
-            << translation.x() << ", "
-            << translation.y()  << ", "
-            << translation.z() << ", "
-            << rollPitchYaw(0) << ", "
-            << rollPitchYaw(1) << ", "
-            << rollPitchYaw(2));
+    << translation.x() << ", "
+    << translation.y()  << ", "
+    << translation.z() << ", "
+    << rollPitchYaw(0) << ", "
+    << rollPitchYaw(1) << ", "
+    << rollPitchYaw(2) << " = "
+    << translation.vector().norm() << " m");
 
     std::ofstream file;
     file.open(filename.c_str());

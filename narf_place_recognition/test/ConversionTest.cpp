@@ -99,3 +99,48 @@ TEST(Conversion, getTranslationOnIdentityEqualsZero) {
     ASSERT_FLOAT_EQ(result.y(), 0);
     ASSERT_FLOAT_EQ(result.z(), 0);
 }
+
+
+// Just for my own understanding of the pose mechanic
+TEST(Conversion, poseDiffReturnCorrectValue) {
+    float roll1 = 0.1;
+    float pitch1 = 0.5;
+    float yaw1 = 1;
+
+    float roll2 = 0.1;
+    float pitch2 = 0.5;
+    float yaw2 = 1;
+
+    tf::Pose start;
+    start.setOrigin(tf::Vector3(1,1,1));
+    start.setRotation(tf::createQuaternionFromRPY(roll1, pitch1, yaw1));
+    tf::Pose end;
+
+    Conversion::getPoseDiff(start, end);
+
+    // Order might be different from ROS, but it does not matter.
+    Eigen::AngleAxisf rollAngle1(roll1, Eigen::Vector3f::UnitZ());
+    Eigen::AngleAxisf pitchAngle(pitch1, Eigen::Vector3f::UnitZ());
+    Eigen::AngleAxisf yawAngle(yaw1, Eigen::Vector3f::UnitZ());
+    Eigen::Quaternionf quat1 = rollAngle1 * pitchAngle * yawAngle;
+
+    Eigen::AngleAxisf rollAngle2(roll1, Eigen::Vector3f::UnitZ());
+    Eigen::AngleAxisf pitchAngle2(pitch1, Eigen::Vector3f::UnitZ());
+    Eigen::AngleAxisf yawAngle2(yaw1, Eigen::Vector3f::UnitZ());
+    Eigen::Quaternionf quat2 = rollAngle2 * pitchAngle2 * yawAngle2;
+
+    // Make sure quat1*quat1.inverse == Identity
+    Eigen::Quaternionf identityQuat = quat1*quat1.inverse();
+    ASSERT_FLOAT_EQ(identityQuat.x(), Eigen::Quaternionf::Identity().x());
+    ASSERT_FLOAT_EQ(identityQuat.y(), Eigen::Quaternionf::Identity().y());
+    ASSERT_FLOAT_EQ(identityQuat.z(), Eigen::Quaternionf::Identity().y());
+    ASSERT_FLOAT_EQ(identityQuat.w(), Eigen::Quaternionf::Identity().w());
+
+    // Test if the difference quatEnd*inv(quatStart) == quatDiff
+    Eigen::Quaternionf composedQuat = quat2*quat1;
+    Eigen::Quaternionf quatDiff = composedQuat*quat1.inverse();
+    ASSERT_FLOAT_EQ(quatDiff.x(), quat2.x());
+    ASSERT_FLOAT_EQ(quatDiff.y(), quat2.y());
+    ASSERT_FLOAT_EQ(quatDiff.z(), quat2.z());
+    ASSERT_FLOAT_EQ(quatDiff.w(), quat2.w());
+}
