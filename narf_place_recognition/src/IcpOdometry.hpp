@@ -14,7 +14,17 @@ namespace IcpOdometry {
             const PointCloud &endCloud,
             Eigen::Matrix4f initTransfo,
             const std::string &configFile,
-            const std::string &cloudsOutputPath = "");
+            const std::string &cloudsOutputPath = "",
+            bool isOdomMergedCloudsSaved = false);
+
+    void saveMergedClouds(const std::string &cloudsOutputPath,
+            PointCloud &startCloud, PointCloud &endCloud);
+
+    void boundingBox(PointCloud &pointCloud,
+            float xMin = -20, float xMax = 20,
+            float yMin = -20, float yMax = 20,
+            float zMin = 0, float zMax = 4.0,
+            bool removeInside = 0);
 }
 
 #endif

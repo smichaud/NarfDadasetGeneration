@@ -19,8 +19,10 @@ class DatasetGenerator {
         int totalPointCloudIndex;
         int pointCloudIndex;
         const int numSuffixWidth;
+        bool isNextOdomEqualToFirst;
         bool isNextOdomEqualToLast;
         bool isOdomOutput;
+        bool isOdomMergedCloudsSaved;
         int pointCloudKeepOneOutOf;
 
         tf::Pose lastMsgPose;
@@ -33,9 +35,11 @@ class DatasetGenerator {
                 const std::string outputPath,
                 const std::string icpConfigPath,
                 bool isOdomOutput = true,
-                int pointCloudKeepOneOutOf = 1.0);
+                int pointCloudKeepOneOutOf = 1.0,
+                bool isOdomMergedCloudsSaved = false);
         void manageOdometryMsg(rosbag::MessageInstance const &msg);
         void managePointCloudMsg(rosbag::MessageInstance const &msg);
+        void setNextOdomEqualToFirst();
         void setNextOdomEqualToLast();
 
     private:
