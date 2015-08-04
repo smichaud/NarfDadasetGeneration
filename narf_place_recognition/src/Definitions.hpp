@@ -6,5 +6,6 @@
 
 typedef PointMatcher<float> PM;
 typedef PM::DataPoints PointCloud;
+typedef unsigned long int uli;
 
 #endif

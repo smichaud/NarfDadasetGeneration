@@ -28,6 +28,7 @@ int main(int argc, char **argv) {
     string cloudTopic;
     string poseTopic;
     bool isOdomOutput;
+    bool isOdomMergedCloudsSaved;
     int pointCloudKeepOneOutOf;
     nodeHandle.param("bagFiles", bagFilesArg, string(""));
     nodeHandle.param("outputPath", outputPath, string(""));
@@ -36,6 +37,8 @@ int main(int argc, char **argv) {
     nodeHandle.param("poseTopic", poseTopic,
             string("/robot_pose_ekf/odom_combined"));
     nodeHandle.param("isOdomOutput", isOdomOutput, bool(true));
+    nodeHandle.param("isOdomMergedCloudsSaved", isOdomMergedCloudsSaved,
+            bool(false));
     nodeHandle.param("pointCloudKeepOneOutOf", pointCloudKeepOneOutOf,
             int(1));
 
@@ -44,7 +47,7 @@ int main(int argc, char **argv) {
     topics.push_back(poseTopic);
 
     DatasetGenerator datasetGenerator(outputPath, icpConfigPath, isOdomOutput,
-            pointCloudKeepOneOutOf);
+            pointCloudKeepOneOutOf, isOdomMergedCloudsSaved);
 
     vector<string> bagFiles = parseBagFiles(bagFilesArg);
 
@@ -55,7 +58,7 @@ int main(int argc, char **argv) {
             currentBag.open(currentBagFile, rosbag::bagmode::Read);
             rosbag::View view(currentBag, rosbag::TopicQuery(topics));
 
-            ROS_INFO_STREAM("Processing bag file " 
+            ROS_INFO_STREAM("Processing bag file "
                 << bagCount << "/" <<  bagFiles.size() << std::endl);
 
             BOOST_FOREACH(rosbag::MessageInstance const msg, view) {
@@ -63,7 +66,7 @@ int main(int argc, char **argv) {
                 datasetGenerator.managePointCloudMsg(msg);
             }
 
-            datasetGenerator.setNextOdomEqualToLast();
+            datasetGenerator.setNextOdomEqualToFirst();
             currentBag.close();
         } catch(rosbag::BagIOException exception) {
             ROS_WARN("Unable to open the bag file:");

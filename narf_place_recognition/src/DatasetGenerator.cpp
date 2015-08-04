@@ -16,14 +16,18 @@ DatasetGenerator::DatasetGenerator(
         const std::string outputPath,
         const std::string icpConfigPath,
         const bool isOdomOutput,
-        int pointCloudKeepOneOutOf):
+        int pointCloudKeepOneOutOf,
+        bool isOdomMergedCloudsSaved):
     outputPath(outputPath),
     icpConfigPath(icpConfigPath),
     totalPointCloudIndex(0),
     pointCloudIndex(0),
     numSuffixWidth(4),
+    isNextOdomEqualToFirst(false),
     isNextOdomEqualToLast(false),
+    isFirstLoop(true),
     isOdomOutput(isOdomOutput),
+    isOdomMergedCloudsSaved(isOdomMergedCloudsSaved),
     lastCorrectedPose(Eigen::Matrix4f::Identity()),
     pointCloudKeepOneOutOf(pointCloudKeepOneOutOf) {
     }
@@ -66,8 +70,14 @@ void DatasetGenerator::managePointCloudMsg(rosbag::MessageInstance const &msg) {
     }
 }
 
+void DatasetGenerator::setNextOdomEqualToFirst() {
+    this->isNextOdomEqualToLast = true;
+    this->isFirstLoop = false;
+}
+
 void DatasetGenerator::setNextOdomEqualToLast() {
     this->isNextOdomEqualToLast = true;
+    this->isFirstLoop = false;
 }
 
 void DatasetGenerator::computeCloudOdometry(
@@ -75,7 +85,12 @@ void DatasetGenerator::computeCloudOdometry(
     if(this->pointCloudIndex != 0) {
         Eigen::Matrix4f initTransfo = Eigen::Matrix4f::Identity();
 
-        if(this->isNextOdomEqualToLast) {
+        if(this->isNextOdomEqualToFirst) {
+            this->setFirstLoopBestMatch();
+            //2.0 = 1.0 + ICP
+            //2.1 = 2.0 + odom + odom diff closest in 1 + ICP
+            //Require: save all loop1 scans odom, load PC from file
+        } else if(this->isNextOdomEqualToLast) {
             this->isNextOdomEqualToLast = false;
         } else {
             tf::Pose startPose(this->lastCloudPose);
@@ -85,15 +100,38 @@ void DatasetGenerator::computeCloudOdometry(
             initTransfo = Conversion::tfToEigen(poseDiff);
         }
 
+        std::string filename = "";
+        if(this->isOdomMergedCloudsSaved) {
+            filename += this->outputPath + "scan_merged_";
+            filename += this->getPaddedNum(this->pointCloudIndex,
+                    this->numSuffixWidth);
+        }
         Eigen::Matrix4f icpOdom = IcpOdometry::getCorrectedTransfo(
-        *this->lastPointCloud, *currentCloud,
-        initTransfo, this->icpConfigPath);
+                *this->lastPointCloud, *currentCloud,
+                initTransfo, this->icpConfigPath, filename,
+                this->isOdomMergedCloudsSaved);
 
         this->lastCorrectedPose = Conversion::getPoseComposition(
                 this->lastCorrectedPose, icpOdom);
     }
 
     this->lastCloudPose = this->lastMsgPose;
+}
+
+// [TODO]: Working on this method - 2015-08-03 04:48pm
+void DatasetGenerator::setFirstLoopBestMatch() {
+    int bestIndex = 0;
+    int bestDistance = std::numeric_limits<int>::infinity();
+    for(int i = 0; i < this->firstLoopPoses.size() ; ++i) {
+        tf::Pose currentPose = this->lastCloudPose;
+        int distance = 0;
+        if(distance < bestDistance) {
+           bestDistance = distance;
+        }
+    }
+    boost::shared_ptr<PM::DataPoints> closestPointCloud;
+    closestPointCloud->load("");
+    this->lastPointCloud = closestPointCloud;
 }
 
 void DatasetGenerator::saveOdom() {
@@ -107,13 +145,13 @@ void DatasetGenerator::saveOdom() {
             this->lastCorrectedPose);
 
     ROS_INFO_STREAM("Odometry (x,y,z,r,p,y): "
-    << translation.x() << ", "
-    << translation.y()  << ", "
-    << translation.z() << ", "
-    << rollPitchYaw(0) << ", "
-    << rollPitchYaw(1) << ", "
-    << rollPitchYaw(2) << " = "
-    << translation.vector().norm() << " m");
+            << translation.x() << ", "
+            << translation.y()  << ", "
+            << translation.z() << ", "
+            << rollPitchYaw(0) << ", "
+            << rollPitchYaw(1) << ", "
+            << rollPitchYaw(2) << " = "
+            << translation.vector().norm() << " m");
 
     std::ofstream file;
     file.open(filename.c_str());
@@ -126,11 +164,19 @@ void DatasetGenerator::saveOdom() {
         << rollPitchYaw(2) << std::endl;
 
     file.close();
+
+    if(this->isFirstLoop) {
+        tf::Pose pose;
+        pose.setOrigin(Conversion::eigenToTf(translation));
+        pose.setRotation(Conversion::eigenToTf(
+                    Conversion::getQuat(this->lastCorrectedPose)));
+        this->firstLoopPoses.push_back(pose);
+    }
 }
 
 std::string DatasetGenerator::generateCloudFilename() {
     std::string filename = "scan_";
-    filename += this->getPaddedNum(pointCloudIndex, this->numSuffixWidth);
+    filename += this->getPaddedNum(this->pointCloudIndex, this->numSuffixWidth);
     filename += ".pcd";
 
     return this->outputPath + filename;
