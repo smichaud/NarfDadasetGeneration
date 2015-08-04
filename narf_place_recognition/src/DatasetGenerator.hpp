@@ -21,12 +21,14 @@ class DatasetGenerator {
         const int numSuffixWidth;
         bool isNextOdomEqualToFirst;
         bool isNextOdomEqualToLast;
+        bool isFirstLoop;
         bool isOdomOutput;
         bool isOdomMergedCloudsSaved;
         int pointCloudKeepOneOutOf;
 
         tf::Pose lastMsgPose;
         tf::Pose lastCloudPose;
+        std::vector<tf::Pose> firstLoopPoses;
         Eigen::Matrix4f lastCorrectedPose;
         boost::shared_ptr<PM::DataPoints> lastPointCloud;
 
@@ -45,6 +47,7 @@ class DatasetGenerator {
     private:
         void computeCloudOdometry(
                 boost::shared_ptr<PM::DataPoints> currentCloud);
+        void setFirstLoopBestMatch();
         void saveOdom();
         std::string generateCloudFilename();
         std::string getPaddedNum(const int &numSuffix, const int width);

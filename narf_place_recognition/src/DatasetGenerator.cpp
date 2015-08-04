@@ -25,6 +25,7 @@ DatasetGenerator::DatasetGenerator(
     numSuffixWidth(4),
     isNextOdomEqualToFirst(false),
     isNextOdomEqualToLast(false),
+    isFirstLoop(true),
     isOdomOutput(isOdomOutput),
     isOdomMergedCloudsSaved(isOdomMergedCloudsSaved),
     lastCorrectedPose(Eigen::Matrix4f::Identity()),
@@ -71,10 +72,12 @@ void DatasetGenerator::managePointCloudMsg(rosbag::MessageInstance const &msg) {
 
 void DatasetGenerator::setNextOdomEqualToFirst() {
     this->isNextOdomEqualToLast = true;
+    this->isFirstLoop = false;
 }
 
 void DatasetGenerator::setNextOdomEqualToLast() {
     this->isNextOdomEqualToLast = true;
+    this->isFirstLoop = false;
 }
 
 void DatasetGenerator::computeCloudOdometry(
@@ -83,6 +86,7 @@ void DatasetGenerator::computeCloudOdometry(
         Eigen::Matrix4f initTransfo = Eigen::Matrix4f::Identity();
 
         if(this->isNextOdomEqualToFirst) {
+            this->setFirstLoopBestMatch();
             //2.0 = 1.0 + ICP
             //2.1 = 2.0 + odom + odom diff closest in 1 + ICP
             //Require: save all loop1 scans odom, load PC from file
@@ -112,6 +116,22 @@ void DatasetGenerator::computeCloudOdometry(
     }
 
     this->lastCloudPose = this->lastMsgPose;
+}
+
+// [TODO]: Working on this method - 2015-08-03 04:48pm
+void DatasetGenerator::setFirstLoopBestMatch() {
+    int bestIndex = 0;
+    int bestDistance = std::numeric_limits<int>::infinity();
+    for(int i = 0; i < this->firstLoopPoses.size() ; ++i) {
+        tf::Pose currentPose = this->lastCloudPose;
+        int distance = 0;
+        if(distance < bestDistance) {
+           bestDistance = distance;
+        }
+    }
+    boost::shared_ptr<PM::DataPoints> closestPointCloud;
+    closestPointCloud->load("");
+    this->lastPointCloud = closestPointCloud;
 }
 
 void DatasetGenerator::saveOdom() {
@@ -144,6 +164,14 @@ void DatasetGenerator::saveOdom() {
         << rollPitchYaw(2) << std::endl;
 
     file.close();
+
+    if(this->isFirstLoop) {
+        tf::Pose pose;
+        pose.setOrigin(Conversion::eigenToTf(translation));
+        pose.setRotation(Conversion::eigenToTf(
+                    Conversion::getQuat(this->lastCorrectedPose)));
+        this->firstLoopPoses.push_back(pose);
+    }
 }
 
 std::string DatasetGenerator::generateCloudFilename() {
