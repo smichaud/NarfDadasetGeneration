@@ -144,3 +144,17 @@ TEST(Conversion, poseDiffReturnCorrectValue) {
     ASSERT_FLOAT_EQ(quatDiff.z(), quat2.z());
     ASSERT_FLOAT_EQ(quatDiff.w(), quat2.w());
 }
+
+TEST(Conversion, poseInitToZero) {
+    tf::Pose newPose;
+    newPose.setIdentity();
+    tf::Quaternion quatIdentity = tf::Quaternion::getIdentity();
+
+    ASSERT_FLOAT_EQ(newPose.getOrigin().x() , 0);
+    ASSERT_FLOAT_EQ(newPose.getOrigin().y() , 0);
+    ASSERT_FLOAT_EQ(newPose.getOrigin().z() , 0);
+    ASSERT_FLOAT_EQ(newPose.getRotation().x(), quatIdentity.x());
+    ASSERT_FLOAT_EQ(newPose.getRotation().y(), quatIdentity.y());
+    ASSERT_FLOAT_EQ(newPose.getRotation().z(), quatIdentity.z());
+    ASSERT_FLOAT_EQ(newPose.getRotation().w(), quatIdentity.w());
+}

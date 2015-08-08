@@ -20,8 +20,9 @@ DatasetGenerator::DatasetGenerator(
         bool isOdomMergedCloudsSaved):
     outputPath(outputPath),
     icpConfigPath(icpConfigPath),
-    totalPointCloudIndex(0),
-    pointCloudIndex(0),
+    totalCloudIndex(0),
+    cloudIndex(0),
+    currentLoopCloudIndex(0),
     numSuffixWidth(4),
     isNextOdomEqualToFirst(false),
     isNextOdomEqualToLast(false),
@@ -46,14 +47,14 @@ void DatasetGenerator::managePointCloudMsg(rosbag::MessageInstance const &msg) {
         msg.instantiate<sensor_msgs::PointCloud2>();
 
     if(cloudMsg != NULL) {
-        if(this->totalPointCloudIndex % this->pointCloudKeepOneOutOf == 0) {
-            ROS_INFO_STREAM("Processing cloud " << this->pointCloudIndex);
+        if(this->totalCloudIndex % this->pointCloudKeepOneOutOf == 0) {
+            ROS_INFO_STREAM("Processing cloud " << this->cloudIndex);
 
             shared_ptr<PM::DataPoints> cloud(new PM::DataPoints(
                         rosMsgToPointMatcherCloud<float>(*cloudMsg)));
 
             try{
-                cloud->save(generateCloudFilename());
+                cloud->save(generateCloudFilename(this->cloudIndex));
             } catch(...) {
                 ROS_ERROR("Unable to save in the directory provided.");
             }
@@ -63,49 +64,35 @@ void DatasetGenerator::managePointCloudMsg(rosbag::MessageInstance const &msg) {
                 this->saveOdom();
             }
 
-            this->pointCloudIndex++;
+            this->cloudIndex++;
+            this->currentLoopCloudIndex++;
             this->lastPointCloud = cloud;
         }
-        this->totalPointCloudIndex++;
+        this->totalCloudIndex++;
     }
-}
-
-void DatasetGenerator::setNextOdomEqualToFirst() {
-    this->isNextOdomEqualToLast = true;
-    this->isFirstLoop = false;
-}
-
-void DatasetGenerator::setNextOdomEqualToLast() {
-    this->isNextOdomEqualToLast = true;
-    this->isFirstLoop = false;
 }
 
 void DatasetGenerator::computeCloudOdometry(
         shared_ptr<PM::DataPoints> currentCloud) {
-    if(this->pointCloudIndex != 0) {
+    if(this->cloudIndex != 0) {
         Eigen::Matrix4f initTransfo = Eigen::Matrix4f::Identity();
 
-        if(this->isNextOdomEqualToFirst) {
-            this->setFirstLoopBestMatch();
-            //2.0 = 1.0 + ICP
-            //2.1 = 2.0 + odom + odom diff closest in 1 + ICP
-            //Require: save all loop1 scans odom, load PC from file
-        } else if(this->isNextOdomEqualToLast) {
+        if(this->isNextOdomEqualToLast) {
             this->isNextOdomEqualToLast = false;
+        } else if(this->isNextOdomEqualToFirst) {
+            initTransfo = this->setFirstLoopBestMatch();
         } else {
-            tf::Pose startPose(this->lastCloudPose);
-            tf::Pose endPose(this->lastMsgPose);
-            tf::Transform poseDiff = startPose.inverseTimes(endPose);
-
-            initTransfo = Conversion::tfToEigen(poseDiff);
+            initTransfo = Conversion::tfToEigen(
+                    this->getPoseDiffFromLastCloud());
         }
 
         std::string filename = "";
         if(this->isOdomMergedCloudsSaved) {
             filename += this->outputPath + "scan_merged_";
-            filename += this->getPaddedNum(this->pointCloudIndex,
+            filename += this->getPaddedNum(this->cloudIndex,
                     this->numSuffixWidth);
         }
+
         Eigen::Matrix4f icpOdom = IcpOdometry::getCorrectedTransfo(
                 *this->lastPointCloud, *currentCloud,
                 initTransfo, this->icpConfigPath, filename,
@@ -118,25 +105,56 @@ void DatasetGenerator::computeCloudOdometry(
     this->lastCloudPose = this->lastMsgPose;
 }
 
-// [TODO]: Working on this method - 2015-08-03 04:48pm
-void DatasetGenerator::setFirstLoopBestMatch() {
+Eigen::Matrix4f DatasetGenerator::setFirstLoopBestMatch() {
     int bestIndex = 0;
-    int bestDistance = std::numeric_limits<int>::infinity();
-    for(int i = 0; i < this->firstLoopPoses.size() ; ++i) {
-        tf::Pose currentPose = this->lastCloudPose;
-        int distance = 0;
-        if(distance < bestDistance) {
-           bestDistance = distance;
+    float bestDistance = std::numeric_limits<float>::infinity();
+    Eigen::Matrix4f initTransfo = Eigen::Matrix4f::Identity();
+
+    if(this->currentLoopCloudIndex != 0) {
+        tf::Pose lastRealPose = Conversion::eigenToTf(this->lastCorrectedPose);
+        tf::Pose currentPose = Conversion::getPoseComposition(lastRealPose,
+                this->getPoseDiffFromLastCloud());
+
+        for(int i = 0; i < this->firstLoopPoses.size() ; ++i) {
+            tf::Pose firstLoopPose = this->firstLoopPoses[i];
+            float distance = Conversion::getL2Distance(currentPose,
+                    firstLoopPose);
+            if(distance < bestDistance) {
+                bestIndex = i;
+                bestDistance = distance;
+            }
         }
+        initTransfo = Conversion::tfToEigen(
+                this->firstLoopPoses[bestIndex].inverseTimes(currentPose));
     }
-    boost::shared_ptr<PM::DataPoints> closestPointCloud;
-    closestPointCloud->load("");
+
+    std::cout << "Try to load: " << this->generateCloudFilename(bestIndex) << std::endl;
+    shared_ptr<PM::DataPoints> closestPointCloud(new PM::DataPoints);
+    closestPointCloud->load(this->generateCloudFilename(bestIndex));
     this->lastPointCloud = closestPointCloud;
+
+    // [TODO]: Remove debug outputs - 2015-08-04 10:46am
+    std::cout << "===============================================" << std::endl;
+    std::cout << "Loop2 index       : " << this->currentLoopCloudIndex
+        << std::endl;
+    std::cout << "Loop1 best match  : " << bestIndex << std::endl;
+    std::cout << "Distance          : " << bestDistance << std::endl;
+    std::cout << "LastMsg           : " << Conversion::tfToString(this->lastMsgPose) << std::endl;
+    std::cout << "LastCloud         : " << Conversion::tfToString(this->lastCloudPose) << std::endl;
+    std::cout << "===============================================" << std::endl;
+
+    return initTransfo;
+}
+
+tf::Pose DatasetGenerator::getPoseDiffFromLastCloud() {
+    tf::Pose startPose(this->lastCloudPose);
+    tf::Pose endPose(this->lastMsgPose);
+    return startPose.inverseTimes(endPose);
 }
 
 void DatasetGenerator::saveOdom() {
     std::string filename = this->outputPath + "scan_";
-    filename += this->getPaddedNum(this->pointCloudIndex, this->numSuffixWidth);
+    filename += this->getPaddedNum(this->cloudIndex, this->numSuffixWidth);
     filename += "_info.dat";
 
     Eigen::Translation3f translation = Conversion::getTranslation(
@@ -174,9 +192,21 @@ void DatasetGenerator::saveOdom() {
     }
 }
 
-std::string DatasetGenerator::generateCloudFilename() {
+void DatasetGenerator::setNextOdomEqualToFirst() {
+    this->isNextOdomEqualToFirst = true;
+    this->isFirstLoop = false;
+    this->currentLoopCloudIndex = 0;
+}
+
+void DatasetGenerator::setNextOdomEqualToLast() {
+    this->isNextOdomEqualToLast = true;
+    this->isFirstLoop = false;
+    this->currentLoopCloudIndex = 0;
+}
+
+std::string DatasetGenerator::generateCloudFilename(int cloudIndex) {
     std::string filename = "scan_";
-    filename += this->getPaddedNum(this->pointCloudIndex, this->numSuffixWidth);
+    filename += this->getPaddedNum(cloudIndex, this->numSuffixWidth);
     filename += ".pcd";
 
     return this->outputPath + filename;

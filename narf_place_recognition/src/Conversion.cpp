@@ -1,27 +1,27 @@
 #include "Conversion.hpp"
 
 namespace Conversion {
-    Eigen::Quaternionf tfToEigen(const tf::Quaternion tfQuat) {
+    Eigen::Quaternionf tfToEigen(const tf::Quaternion& tfQuat) {
         return Eigen::Quaternionf(
                 tfQuat.w(), tfQuat.x(), tfQuat.y(), tfQuat.z());
     }
 
-    tf::Quaternion eigenToTf(const Eigen::Quaternionf eigenQuat) {
+    tf::Quaternion eigenToTf(const Eigen::Quaternionf& eigenQuat) {
         return tf::Quaternion(
                 eigenQuat.x(), eigenQuat.y(), eigenQuat.z(), eigenQuat.w());
     }
 
-    Eigen::Translation3f tfToEigen(const tf::Vector3 tfTranslation) {
+    Eigen::Translation3f tfToEigen(const tf::Vector3& tfTranslation) {
         return Eigen::Translation3f(
                 tfTranslation.x(), tfTranslation.y(), tfTranslation.z());
     }
 
-    tf::Vector3 eigenToTf(const Eigen::Translation3f eigenTranslation) {
+    tf::Vector3 eigenToTf(const Eigen::Translation3f& eigenTranslation) {
         return tf::Vector3(eigenTranslation.x(), eigenTranslation.y(),
                 eigenTranslation.z());
     }
 
-    Eigen::Matrix4f tfToEigen(const tf::Transform tfTransfo) {
+    Eigen::Matrix4f tfToEigen(const tf::Transform& tfTransfo) {
         Eigen::Quaternionf eigenQuat = tfToEigen(tfTransfo.getRotation());
         Eigen::Translation3f translation = tfToEigen(tfTransfo.getOrigin());
         Eigen::Transform<float,3,Eigen::Affine> output = translation*eigenQuat;
@@ -29,11 +29,19 @@ namespace Conversion {
         return output.matrix();
     }
 
-    Eigen::Quaternionf getQuat(const Eigen::Matrix4f transfo) {
+    tf::Pose eigenToTf(const Eigen::Matrix4f& eigenTransfo) {
+        tf::Pose tfTransfo;
+        tfTransfo.setOrigin(eigenToTf(getTranslation(eigenTransfo)));
+        tfTransfo.setRotation(eigenToTf(getQuat(eigenTransfo)));
+
+        return tfTransfo;
+    }
+
+    Eigen::Quaternionf getQuat(const Eigen::Matrix4f& transfo) {
         return Eigen::Quaternionf(Eigen::Matrix3f(transfo.block(0,0,3,3)));
     }
 
-    Eigen::Vector3f getRPY(const Eigen::Matrix4f transfo) {
+    Eigen::Vector3f getRPY(const Eigen::Matrix4f& transfo) {
         Eigen::Quaternionf eigenQuat = Conversion::getQuat(transfo);
 
         double roll, pitch, yaw;
@@ -42,7 +50,7 @@ namespace Conversion {
         return Eigen::Vector3f(roll, pitch, yaw);
     }
 
-    Eigen::Translation3f getTranslation(const Eigen::Matrix4f transfo) {
+    Eigen::Translation3f getTranslation(const Eigen::Matrix4f& transfo) {
         return Eigen::Translation3f(transfo.block(0,3,3,1));
     }
 
@@ -82,5 +90,35 @@ namespace Conversion {
         finalPose.block<3,1>(0,3) = finalTranslation;
 
         return finalPose;
+    }
+
+    tf::Pose getPoseComposition(const tf::Pose& start,
+            const tf::Pose& increment) {
+        tf::Pose finalPose;
+        finalPose.setOrigin(start.getOrigin() + increment.getOrigin());
+        finalPose.setRotation(increment.getRotation()*start.getRotation());
+
+        return finalPose;
+    }
+
+    float getL2Distance(const tf::Pose& pose1, const tf::Pose& pose2) {
+        tf::Vector3 origin1 = pose1.getOrigin();
+        tf::Vector3 origin2 = pose2.getOrigin();
+        tf::Vector3 diff = (origin1 - origin2);
+
+        return tfToEigen(diff).vector().norm();
+    }
+
+    std::string tfToString(tf::Pose pose) {
+        std::stringstream ss;
+        ss << "(" << pose.getOrigin().x() << ","
+            << pose.getOrigin().y() << ","
+            << pose.getOrigin().z() << ")-("
+            << pose.getRotation().x() << ","
+            << pose.getRotation().y() << ","
+            << pose.getRotation().z() << ","
+            << pose.getRotation().w() << ")";
+
+            return ss.str();
     }
 }
