@@ -114,6 +114,10 @@ Eigen::Matrix4f DatasetGenerator::setFirstLoopBestMatch() {
         tf::Pose lastRealPose = Conversion::eigenToTf(this->lastCorrectedPose);
         tf::Pose currentPose = Conversion::getPoseComposition(lastRealPose,
                 this->getPoseDiffFromLastCloud());
+        std::cout << "================" << std::endl;
+        std::cout << "Last real: " << Conversion::tfToString(lastRealPose) << std::endl;
+        std::cout << "Current  : " << Conversion::tfToString(currentPose) << std::endl;
+        std::cout << "================" << std::endl;
 
         for(int i = 0; i < this->firstLoopPoses.size() ; ++i) {
             tf::Pose firstLoopPose = this->firstLoopPoses[i];
@@ -124,14 +128,13 @@ Eigen::Matrix4f DatasetGenerator::setFirstLoopBestMatch() {
                 bestDistance = distance;
             }
         }
+
+        this->lastCorrectedPose = Conversion::tfToEigen(
+                this->firstLoopPoses[bestIndex]);
+
         initTransfo = Conversion::tfToEigen(
                 this->firstLoopPoses[bestIndex].inverseTimes(currentPose));
     }
-
-    std::cout << "Try to load: " << this->generateCloudFilename(bestIndex) << std::endl;
-    shared_ptr<PM::DataPoints> closestPointCloud(new PM::DataPoints);
-    closestPointCloud->load(this->generateCloudFilename(bestIndex));
-    this->lastPointCloud = closestPointCloud;
 
     // [TODO]: Remove debug outputs - 2015-08-04 10:46am
     std::cout << "===============================================" << std::endl;
@@ -139,9 +142,12 @@ Eigen::Matrix4f DatasetGenerator::setFirstLoopBestMatch() {
         << std::endl;
     std::cout << "Loop1 best match  : " << bestIndex << std::endl;
     std::cout << "Distance          : " << bestDistance << std::endl;
-    std::cout << "LastMsg           : " << Conversion::tfToString(this->lastMsgPose) << std::endl;
-    std::cout << "LastCloud         : " << Conversion::tfToString(this->lastCloudPose) << std::endl;
+    std::cout << Conversion::getTranslation(initTransfo).vector().transpose() << std::endl;
     std::cout << "===============================================" << std::endl;
+
+    shared_ptr<PM::DataPoints> closestPointCloud(new PM::DataPoints);
+    closestPointCloud->load(this->generateCloudFilename(bestIndex));
+    this->lastPointCloud = closestPointCloud;
 
     return initTransfo;
 }
@@ -196,6 +202,7 @@ void DatasetGenerator::setNextOdomEqualToFirst() {
     this->isNextOdomEqualToFirst = true;
     this->isFirstLoop = false;
     this->currentLoopCloudIndex = 0;
+    this->lastCorrectedPose.setIdentity();
 }
 
 void DatasetGenerator::setNextOdomEqualToLast() {
