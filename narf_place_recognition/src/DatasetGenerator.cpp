@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <fstream>
 #include <cmath>
+#include <cstdlib>
 
 #include <pointmatcher_ros/point_cloud.h>
 
@@ -93,10 +94,25 @@ void DatasetGenerator::computeCloudOdometry(
                     this->numSuffixWidth);
         }
 
-        Eigen::Matrix4f icpOdom = IcpOdometry::getCorrectedTransfo(
+        Eigen::Matrix4f icpOdom;
+        do {
+        icpOdom = IcpOdometry::getCorrectedTransfo(
                 *this->lastPointCloud, *currentCloud,
                 initTransfo, this->icpConfigPath, filename,
                 this->isOdomMergedCloudsSaved);
+        } while(this->isOdomMergedCloudsSaved &&
+                this->userOdomAdjustment(initTransfo, filename));
+
+        //std::cout << "===== Output ICP difference =====" << std::endl;
+        //float yawInit = Conversion::getRPY(initTransfo)(2);
+        //float yawCorr = Conversion::getRPY(icpOdom)(2);
+        //std::cout << "Yaw Correction : "
+            //<< yawCorr-yawInit
+            //<< std::endl;
+        //if((yawCorr > 0 && yawInit > 0)||(yawCorr < 0 && yawInit < 0)) {
+            //std::cout << "Same sign" << std::endl;
+        //}
+        //std::cout << "=================================" << std::endl;
 
         this->lastCorrectedPose = Conversion::getPoseComposition(
                 this->lastCorrectedPose, icpOdom);
@@ -114,10 +130,6 @@ Eigen::Matrix4f DatasetGenerator::setFirstLoopBestMatch() {
         tf::Pose lastRealPose = Conversion::eigenToTf(this->lastCorrectedPose);
         tf::Pose currentPose = Conversion::getPoseComposition(lastRealPose,
                 this->getPoseDiffFromLastCloud());
-        std::cout << "================" << std::endl;
-        std::cout << "Last real: " << Conversion::tfToString(lastRealPose) << std::endl;
-        std::cout << "Current  : " << Conversion::tfToString(currentPose) << std::endl;
-        std::cout << "================" << std::endl;
 
         for(int i = 0; i < this->firstLoopPoses.size() ; ++i) {
             tf::Pose firstLoopPose = this->firstLoopPoses[i];
@@ -136,20 +148,35 @@ Eigen::Matrix4f DatasetGenerator::setFirstLoopBestMatch() {
                 this->firstLoopPoses[bestIndex].inverseTimes(currentPose));
     }
 
-    // [TODO]: Remove debug outputs - 2015-08-04 10:46am
-    std::cout << "===============================================" << std::endl;
-    std::cout << "Loop2 index       : " << this->currentLoopCloudIndex
-        << std::endl;
-    std::cout << "Loop1 best match  : " << bestIndex << std::endl;
-    std::cout << "Distance          : " << bestDistance << std::endl;
-    std::cout << Conversion::getTranslation(initTransfo).vector().transpose() << std::endl;
-    std::cout << "===============================================" << std::endl;
-
-    shared_ptr<PM::DataPoints> closestPointCloud(new PM::DataPoints);
-    closestPointCloud->load(this->generateCloudFilename(bestIndex));
+    shared_ptr<PM::DataPoints> closestPointCloud(
+            new PM::DataPoints(PM::DataPoints::load(
+                    this->generateCloudFilename(bestIndex))));
     this->lastPointCloud = closestPointCloud;
 
     return initTransfo;
+}
+
+bool DatasetGenerator::userOdomAdjustment(Eigen::Matrix4f& initTransfo,
+        const std::string& filename) {
+    char requireAdjustment;
+    std::cout << "Enter (y) if odom need adjustment : " << std::endl;
+
+    std::string viewerApp = "paraview ";
+    viewerApp.append(filename + ".vtk &");
+    std::system(viewerApp.c_str());
+
+    std::cin.get(requireAdjustment);
+
+    if(requireAdjustment == 'y' || requireAdjustment == 'Y') {
+        std::cout << "Magic adjustment will be done !" << std::endl;
+        Eigen::AngleAxisf rotTest(0.2, Eigen::Vector3f::UnitZ());
+        initTransfo.block<3,3>(0,0) =
+            rotTest.toRotationMatrix()*(initTransfo.block<3,3>(0,0));
+
+        return true;
+    }
+
+    return false;
 }
 
 tf::Pose DatasetGenerator::getPoseDiffFromLastCloud() {

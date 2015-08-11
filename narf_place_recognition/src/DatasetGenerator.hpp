@@ -50,6 +50,8 @@ class DatasetGenerator {
                 boost::shared_ptr<PM::DataPoints> currentCloud);
         Eigen::Matrix4f setFirstLoopBestMatch();
         tf::Pose getPoseDiffFromLastCloud();
+        bool userOdomAdjustment(Eigen::Matrix4f& initTransfo,
+                const std::string& filename);
         void saveOdom();
         std::string generateCloudFilename(int cloudIndex);
         std::string getPaddedNum(const int &numSuffix, const int width);
