@@ -1,0 +1,65 @@
+referenceDataPointsFilters:
+  - SamplingSurfaceNormalDataPointsFilter:
+      ratio: 0.9999
+      keepDensities: 1
+      keepNormals: 0
+      
+  - BoundingBoxDataPointsFilter:
+      xMin: -6.0
+      xMax: 6.0
+      yMin: -6.0
+      yMax: 6.0
+      zMin: -0.5
+      zMax: 2.5
+      removeInside: 0
+
+  - MaxDensityDataPointsFilter:
+      maxDensity: 30
+
+readingDataPointsFilters:
+  - SamplingSurfaceNormalDataPointsFilter:
+      ratio: 0.9999
+      keepDensities: 1
+      keepNormals: 0
+
+  - BoundingBoxDataPointsFilter:
+      xMin: -6.0
+      xMax: 6.0
+      yMin: -6.0
+      yMax: 6.0
+      zMin: -0.5
+      zMax: 2.5
+      removeInside: 0
+      
+  - MaxDensityDataPointsFilter:
+      maxDensity: 30
+
+matcher:
+  KDTreeMatcher:
+    maxDist: 4.0
+    knn: 5
+    epsilon: 0.0
+
+outlierFilters:
+  - TrimmedDistOutlierFilter:
+      ratio: 0.8
+
+errorMinimizer:
+  PointToPointErrorMinimizer
+
+transformationCheckers:
+  - DifferentialTransformationChecker:
+      minDiffRotErr: 0.0000001
+      minDiffTransErr: 0.000001
+      smoothLength: 5
+  - CounterTransformationChecker:
+      maxIterationCount: 150
+  - BoundTransformationChecker:
+      maxRotationNorm: 0.90
+      maxTranslationNorm: 4.00
+
+inspector:
+  NullInspector
+
+logger:
+     NullLogger
