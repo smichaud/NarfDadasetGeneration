@@ -73,6 +73,20 @@ namespace Conversion {
         return composedTransfo.matrix();
     }
 
+    Eigen::Matrix4f fromTranslationRPY(
+            const float x, const float y, const float z,
+            const float roll, const float pitch, const float yaw) {
+        Eigen::Matrix4f transfo = Eigen::Matrix4f::Identity();
+
+        transfo.block<3,1>(0,3) = Eigen::Vector3f(x,y,z);
+
+        tf::Quaternion tfQuat;
+        tfQuat.setRPY(roll, pitch, yaw);
+        transfo.block<3,3>(0,0) = tfToEigen(tfQuat).matrix();
+
+        return transfo;
+    }
+
     Eigen::Matrix4f getPoseComposition(const Eigen::Matrix4f& start,
             const Eigen::Matrix4f& increment) {
         Eigen::Vector3f startTrans =

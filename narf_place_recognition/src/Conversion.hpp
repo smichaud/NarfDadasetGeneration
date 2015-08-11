@@ -20,11 +20,13 @@ namespace Conversion {
     Eigen::Quaternionf getQuat(const Eigen::Matrix4f& transfo);
     Eigen::Vector3f getRPY(const Eigen::Matrix4f& transfo);
     Eigen::Translation3f getTranslation(const Eigen::Matrix4f& transfo);
+    Eigen::Matrix4f fromTranslationRPY(
+            const float x, const float y, const float z,
+            const float roll, const float pitch, const float yaw);
 
     Eigen::Matrix4f getPoseDiff(const tf::Pose& start, const tf::Pose& end);
     Eigen::Matrix4f getPoseComposition(const Eigen::Matrix4f& start,
             const Eigen::Matrix4f& increment);
-
     tf::Pose getPoseComposition(const tf::Pose& start,
             const tf::Pose& increment);
     float getL2Distance(const tf::Pose& pose1, const tf::Pose& pose2);

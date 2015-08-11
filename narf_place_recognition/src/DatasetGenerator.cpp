@@ -8,6 +8,7 @@
 #include <cmath>
 #include <cstdlib>
 
+#include <boost/filesystem.hpp>
 #include <pointmatcher_ros/point_cloud.h>
 
 using PointMatcher_ros::rosMsgToPointMatcherCloud;
@@ -49,21 +50,46 @@ void DatasetGenerator::managePointCloudMsg(rosbag::MessageInstance const &msg) {
 
     if(cloudMsg != NULL) {
         if(this->totalCloudIndex % this->pointCloudKeepOneOutOf == 0) {
-            ROS_INFO_STREAM("Processing cloud " << this->cloudIndex);
+            ROS_INFO_STREAM("===== Processing cloud " << this->cloudIndex);
 
             shared_ptr<PM::DataPoints> cloud(new PM::DataPoints(
                         rosMsgToPointMatcherCloud<float>(*cloudMsg)));
 
-            try{
-                cloud->save(generateCloudFilename(this->cloudIndex));
-            } catch(...) {
-                ROS_ERROR("Unable to save in the directory provided.");
+
+            std::string cloudFilename = generateCloudFilename(this->cloudIndex);
+            if(!boost::filesystem::exists(cloudFilename)) {
+                try{
+                    cloud->save(cloudFilename);
+                } catch(...) {
+                    ROS_ERROR("Unable to save in the directory provided.");
+                }
+            } else {
+                ROS_INFO_STREAM("Cloud file exists and will not be replaced:"
+                        << cloudFilename);
             }
 
+
             if(this->isOdomOutput) {
-                this->computeCloudOdometry(cloud);
-                this->saveOdom();
+                std::string odomFilename = this->generateOdomFilename(
+                        this->cloudIndex);
+                if(boost::filesystem::exists(odomFilename)) {
+                    ROS_INFO_STREAM("Odometry file exists and will be loaded");
+                    this->lastCorrectedPose = this->loadCloudOdometry(
+                            this->cloudIndex);
+                } else{
+                    this->lastCorrectedPose = this->computeCloudOdometry(cloud);
+                    this->saveOdom();
+                }
+
+                if(this->isFirstLoop) {
+                    this->firstLoopPoses.push_back(
+                            Conversion::eigenToTf(this->lastCorrectedPose));
+                }
+
+                this->printLastCorrectedPose();
+                this->lastCloudPose = this->lastMsgPose;
             }
+
 
             this->cloudIndex++;
             this->currentLoopCloudIndex++;
@@ -73,7 +99,53 @@ void DatasetGenerator::managePointCloudMsg(rosbag::MessageInstance const &msg) {
     }
 }
 
-void DatasetGenerator::computeCloudOdometry(
+Eigen::Matrix4f DatasetGenerator::loadCloudOdometry(const int cloudIndex) {
+    bool isOdomRetreived = false;
+    float x, y, z, roll, pitch, yaw;
+
+    std::string odomFilename = this->generateOdomFilename(this->cloudIndex);
+    std::ifstream file;
+    file.open(odomFilename.c_str());
+
+    if(file.good()) {
+        std::string token;
+        try {
+            while(!file.eof()) {
+                std::string line;
+                std::getline(file, line);
+
+                if(!line.empty() && line[0] != '#') {
+                    std::stringstream lineStream(line);
+                    std::string token;
+                    lineStream >> token;
+
+                    if(token == "Odometry:") {
+                        lineStream >> x >> y >> z >> roll >> pitch >> yaw;
+                        isOdomRetreived = true;
+                    }
+                }
+            }
+        } catch(...) {
+            ROS_ERROR_STREAM("Unable to process the odometry file: "
+                    << odomFilename);
+        }
+    } else {
+        ROS_ERROR_STREAM("Unable to open the odometry file: " << odomFilename);
+    }
+
+    file.close();
+
+    if(isOdomRetreived) {
+        return Conversion::fromTranslationRPY(
+                x, y, z, roll, pitch, yaw);
+    } else {
+        ROS_ERROR_STREAM("Odometry was not loaded from file: " << odomFilename);
+    }
+
+    return Eigen::Matrix4f::Identity();
+}
+
+Eigen::Matrix4f DatasetGenerator::computeCloudOdometry(
         shared_ptr<PM::DataPoints> currentCloud) {
     if(this->cloudIndex != 0) {
         Eigen::Matrix4f initTransfo = Eigen::Matrix4f::Identity();
@@ -89,36 +161,27 @@ void DatasetGenerator::computeCloudOdometry(
 
         std::string filename = "";
         if(this->isOdomMergedCloudsSaved) {
-            filename += this->outputPath + "scan_merged_";
+            filename += this->outputPath + "scan_";
             filename += this->getPaddedNum(this->cloudIndex,
                     this->numSuffixWidth);
+            filename += "_merged";
         }
 
         Eigen::Matrix4f icpOdom;
-        do {
-        icpOdom = IcpOdometry::getCorrectedTransfo(
-                *this->lastPointCloud, *currentCloud,
-                initTransfo, this->icpConfigPath, filename,
-                this->isOdomMergedCloudsSaved);
-        } while(this->isOdomMergedCloudsSaved &&
-                this->userOdomAdjustment(initTransfo, filename));
+        bool isOdomGood = false;
+        while(this->isOdomMergedCloudsSaved && !isOdomGood) {
+            icpOdom = IcpOdometry::getCorrectedTransfo(
+                    *this->lastPointCloud, *currentCloud,
+                    initTransfo, this->icpConfigPath, filename,
+                    this->isOdomMergedCloudsSaved);
+            isOdomGood = !this->userOdomAdjustment(initTransfo, filename);
+        }
 
-        //std::cout << "===== Output ICP difference =====" << std::endl;
-        //float yawInit = Conversion::getRPY(initTransfo)(2);
-        //float yawCorr = Conversion::getRPY(icpOdom)(2);
-        //std::cout << "Yaw Correction : "
-            //<< yawCorr-yawInit
-            //<< std::endl;
-        //if((yawCorr > 0 && yawInit > 0)||(yawCorr < 0 && yawInit < 0)) {
-            //std::cout << "Same sign" << std::endl;
-        //}
-        //std::cout << "=================================" << std::endl;
-
-        this->lastCorrectedPose = Conversion::getPoseComposition(
+        return Conversion::getPoseComposition(
                 this->lastCorrectedPose, icpOdom);
     }
 
-    this->lastCloudPose = this->lastMsgPose;
+    return Eigen::Matrix4f::Identity();
 }
 
 Eigen::Matrix4f DatasetGenerator::setFirstLoopBestMatch() {
@@ -158,16 +221,16 @@ Eigen::Matrix4f DatasetGenerator::setFirstLoopBestMatch() {
 
 bool DatasetGenerator::userOdomAdjustment(Eigen::Matrix4f& initTransfo,
         const std::string& filename) {
-    char requireAdjustment;
-    std::cout << "Enter (y) if odom need adjustment : " << std::endl;
+    std::string requireAdjustment;
+    std::cout << "Enter (y) if odom need adjustment : ";
 
     std::string viewerApp = "paraview ";
     viewerApp.append(filename + ".vtk &");
     std::system(viewerApp.c_str());
 
-    std::cin.get(requireAdjustment);
+    std::getline(std::cin, requireAdjustment);
 
-    if(requireAdjustment == 'y' || requireAdjustment == 'Y') {
+    if(requireAdjustment == "y" || requireAdjustment == "Y") {
         std::cout << "Magic adjustment will be done !" << std::endl;
         Eigen::AngleAxisf rotTest(0.2, Eigen::Vector3f::UnitZ());
         initTransfo.block<3,3>(0,0) =
@@ -175,6 +238,7 @@ bool DatasetGenerator::userOdomAdjustment(Eigen::Matrix4f& initTransfo,
 
         return true;
     }
+    std::cout << "No adjusment will be done." << std::endl;
 
     return false;
 }
@@ -186,23 +250,12 @@ tf::Pose DatasetGenerator::getPoseDiffFromLastCloud() {
 }
 
 void DatasetGenerator::saveOdom() {
-    std::string filename = this->outputPath + "scan_";
-    filename += this->getPaddedNum(this->cloudIndex, this->numSuffixWidth);
-    filename += "_info.dat";
+    std::string filename = this->generateOdomFilename(this->cloudIndex);
 
     Eigen::Translation3f translation = Conversion::getTranslation(
             this->lastCorrectedPose);
     Eigen::Vector3f rollPitchYaw = Conversion::getRPY(
             this->lastCorrectedPose);
-
-    ROS_INFO_STREAM("Odometry (x,y,z,r,p,y): "
-            << translation.x() << ", "
-            << translation.y()  << ", "
-            << translation.z() << ", "
-            << rollPitchYaw(0) << ", "
-            << rollPitchYaw(1) << ", "
-            << rollPitchYaw(2) << " = "
-            << translation.vector().norm() << " m");
 
     std::ofstream file;
     file.open(filename.c_str());
@@ -215,14 +268,6 @@ void DatasetGenerator::saveOdom() {
         << rollPitchYaw(2) << std::endl;
 
     file.close();
-
-    if(this->isFirstLoop) {
-        tf::Pose pose;
-        pose.setOrigin(Conversion::eigenToTf(translation));
-        pose.setRotation(Conversion::eigenToTf(
-                    Conversion::getQuat(this->lastCorrectedPose)));
-        this->firstLoopPoses.push_back(pose);
-    }
 }
 
 void DatasetGenerator::setNextOdomEqualToFirst() {
@@ -238,12 +283,36 @@ void DatasetGenerator::setNextOdomEqualToLast() {
     this->currentLoopCloudIndex = 0;
 }
 
+void DatasetGenerator::printLastCorrectedPose() {
+    Eigen::Translation3f translation = Conversion::getTranslation(
+            this->lastCorrectedPose);
+    Eigen::Vector3f rollPitchYaw = Conversion::getRPY(
+            this->lastCorrectedPose);
+
+    ROS_INFO_STREAM("Odometry (x,y,z,r,p,y): "
+            << translation.x() << ", "
+            << translation.y()  << ", "
+            << translation.z() << ", "
+            << rollPitchYaw(0) << ", "
+            << rollPitchYaw(1) << ", "
+            << rollPitchYaw(2) << " = "
+            << translation.vector().norm() << " m");
+}
+
 std::string DatasetGenerator::generateCloudFilename(int cloudIndex) {
     std::string filename = "scan_";
     filename += this->getPaddedNum(cloudIndex, this->numSuffixWidth);
     filename += ".pcd";
 
     return this->outputPath + filename;
+}
+
+std::string DatasetGenerator::generateOdomFilename(int cloudIndex) {
+    std::string filename = this->outputPath + "scan_";
+    filename += this->getPaddedNum(cloudIndex, this->numSuffixWidth);
+    filename += "_info.dat";
+
+    return filename;
 }
 
 std::string DatasetGenerator::getPaddedNum(const int &numSuffix,

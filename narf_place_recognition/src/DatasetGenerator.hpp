@@ -46,14 +46,19 @@ class DatasetGenerator {
         void setNextOdomEqualToLast();
 
     private:
-        void computeCloudOdometry(
+        Eigen::Matrix4f loadCloudOdometry(const int cloudIndex);
+
+        Eigen::Matrix4f computeCloudOdometry(
                 boost::shared_ptr<PM::DataPoints> currentCloud);
         Eigen::Matrix4f setFirstLoopBestMatch();
         tf::Pose getPoseDiffFromLastCloud();
         bool userOdomAdjustment(Eigen::Matrix4f& initTransfo,
                 const std::string& filename);
         void saveOdom();
+
+        void printLastCorrectedPose();
         std::string generateCloudFilename(int cloudIndex);
+        std::string generateOdomFilename(int cloudIndex);
         std::string getPaddedNum(const int &numSuffix, const int width);
 };
 
