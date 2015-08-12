@@ -221,25 +221,41 @@ Eigen::Matrix4f DatasetGenerator::setFirstLoopBestMatch() {
 
 bool DatasetGenerator::userOdomAdjustment(Eigen::Matrix4f& initTransfo,
         const std::string& filename) {
-    std::string requireAdjustment;
-    std::cout << "Enter (y) if odom need adjustment : ";
+    std::string inputBuffer;
+    float value;
+    std::cout << "Press <enter> if no adjustment required. "
+        << "Else enter yaw or all: ";
 
     std::string viewerApp = "paraview ";
     viewerApp.append(filename + ".vtk &");
     std::system(viewerApp.c_str());
 
-    std::getline(std::cin, requireAdjustment);
+    std::getline(std::cin, inputBuffer);
 
-    if(requireAdjustment == "y" || requireAdjustment == "Y") {
-        std::cout << "Magic adjustment will be done !" << std::endl;
-        Eigen::AngleAxisf rotTest(0.25, Eigen::Vector3f::UnitZ());
-        initTransfo.block<3,3>(0,0) =
-            rotTest.toRotationMatrix()*(initTransfo.block<3,3>(0,0));
+    if(!inputBuffer.empty()) {
+        float x=0, y=0, z=0, roll=0, pitch=0, yaw=0;
 
+        if(inputBuffer == "yaw") {
+            std::cout << "Enter yaw: ";
+
+            std::getline(std::cin, inputBuffer);
+            std::stringstream lineStream(inputBuffer);
+            lineStream >> yaw;
+        } else if(inputBuffer == "all") {
+            std::cout << "Enter x y z roll pitch yaw: ";
+
+            std::getline(std::cin, inputBuffer);
+            std::stringstream lineStream(inputBuffer);
+            lineStream >> x >> y >> z >> roll >> pitch >> yaw;
+        }
+
+        Eigen::Matrix4f increment = Conversion::fromTranslationRPY(
+                x,y,z,roll,pitch,yaw);
+        initTransfo = Conversion::getPoseComposition(initTransfo, increment);
         return true;
     }
-    std::cout << "No adjusment will be done." << std::endl;
 
+    std::cout << "No adjusment will be done." << std::endl;
     return false;
 }
 
