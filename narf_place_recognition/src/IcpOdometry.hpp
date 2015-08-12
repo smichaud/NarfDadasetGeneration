@@ -12,10 +12,10 @@ namespace IcpOdometry {
     Eigen::Matrix4f getCorrectedTransfo(
             const PointCloud &startCloud,
             const PointCloud &endCloud,
-            Eigen::Matrix4f initTransfo,
+            const Eigen::Matrix4f initTransfo,
             const std::string &configFile,
             const std::string &cloudsOutputPath = "",
-            bool isOdomMergedCloudsSaved = false);
+            const bool isOdomMergedCloudsSaved = false);
 
     void saveMergedClouds(const std::string &cloudsOutputPath,
             PointCloud &startCloud, PointCloud &endCloud);

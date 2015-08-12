@@ -232,7 +232,7 @@ bool DatasetGenerator::userOdomAdjustment(Eigen::Matrix4f& initTransfo,
 
     if(requireAdjustment == "y" || requireAdjustment == "Y") {
         std::cout << "Magic adjustment will be done !" << std::endl;
-        Eigen::AngleAxisf rotTest(0.2, Eigen::Vector3f::UnitZ());
+        Eigen::AngleAxisf rotTest(0.25, Eigen::Vector3f::UnitZ());
         initTransfo.block<3,3>(0,0) =
             rotTest.toRotationMatrix()*(initTransfo.block<3,3>(0,0));
 
@@ -259,7 +259,7 @@ void DatasetGenerator::saveOdom() {
 
     std::ofstream file;
     file.open(filename.c_str());
-    file << "Odometry: "
+    file << std::setprecision(30) << "Odometry: "
         << translation.x() << " "
         << translation.y()  << " "
         << translation.z() << " "
