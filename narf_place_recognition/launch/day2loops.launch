@@ -1,0 +1,11 @@
+<launch>
+    <node pkg="narf_place_recognition" type="bag_to_dataset" name="bag_to_dataset" output="screen">
+        <param name="bagFiles" type="string" value="/media/D/Datasets/PlaceRecognition/SickForest/2015-07-14-14-23-47.bag /media/D/Datasets/PlaceRecognition/SickForest/2015-07-14-15-23-54.bag"/>
+        <param name="outputPath" type="string" value="/media/D/Datasets/PlaceRecognition/SickForest/OutputMerged2/"/>
+        <param name="icpConfigPath" type="string" value="/home/smichaud/Workspace/NarfDadasetGeneration/narf_place_recognition/config/sick_icp.yaml"/>
+        <param name="cloudTopic" type="string" value="/cloud"/>
+        <param name="poseTopic" type="string" value="/robot_pose_ekf/odom_combined"/>
+        <param name="isOdomMergedCloudsSaved" type="bool" value="true"/>
+        <param name="isOdomOutput" type="bool" value="true"/>
+    </node>
+</launch>
