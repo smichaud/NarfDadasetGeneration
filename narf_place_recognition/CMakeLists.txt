@@ -56,10 +56,42 @@ add_executable(bag_to_dataset
     src/bag_to_dataset.cpp
     src/DatasetGenerator.cpp
     src/IcpOdometry.cpp
-    src/Conversion.cpp)
+    src/Conversion.cpp
+    )
 target_link_libraries(bag_to_dataset
     ${catkin_LIBRARIES}
     ${libpointmatcher_LIBRARIES}
+    ${Boost_LIBRARIES}
+    )
+
+add_executable(dataset_to_stats
+    src/dataset_to_stats.cpp
+    )
+target_link_libraries(dataset_to_stats
+    ${catkin_LIBRARIES}
+    ${PCL_LIBRARIES}
+    ${Boost_LIBRARIES}
+    )
+
+add_executable(pcd_to_odom
+    src/pcd_to_odom.cpp
+    src/IcpOdometry.cpp
+    src/Conversion.cpp
+    )
+target_link_libraries(pcd_to_odom
+    ${catkin_LIBRARIES}
+    ${PCL_LIBRARIES}
+    ${Boost_LIBRARIES}
+    )
+
+add_executable(odom_correct
+    src/odom_correct.cpp
+    src/IcpOdometry.cpp
+    src/Conversion.cpp
+    )
+target_link_libraries(odom_correct
+    ${catkin_LIBRARIES}
+    ${PCL_LIBRARIES}
     ${Boost_LIBRARIES}
     )
 

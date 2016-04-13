@@ -87,32 +87,69 @@ namespace Conversion {
         return transfo;
     }
 
+    // Old version without start heading rotation on the increment translation
+    //Eigen::Matrix4f getPoseComposition(const Eigen::Matrix4f& start,
+    //const Eigen::Matrix4f& increment) {
+    //Eigen::Vector3f startTrans =
+    //Conversion::getTranslation(start).vector();
+    //Eigen::Vector3f incrementTrans =
+    //Conversion::getTranslation(increment).vector();
+    //Eigen::Vector3f finalTranslation = startTrans + incrementTrans;
+
+    //Eigen::Quaternionf startQuat = Conversion::getQuat(start);
+    //Eigen::Quaternionf incrementQuat = Conversion::getQuat(increment);
+    //Eigen::Quaternionf finalQuat = incrementQuat * startQuat;
+
+    //Eigen::Matrix4f finalPose = Eigen::Matrix4f::Identity();
+    //finalPose.block<3,3>(0,0) = finalQuat.matrix();
+    //finalPose.block<3,1>(0,3) = finalTranslation;
+
+    //return finalPose;
+    //}
+
     Eigen::Matrix4f getPoseComposition(const Eigen::Matrix4f& start,
             const Eigen::Matrix4f& increment) {
-        Eigen::Vector3f startTrans =
-            Conversion::getTranslation(start).vector();
-        Eigen::Vector3f incrementTrans =
-            Conversion::getTranslation(increment).vector();
-        Eigen::Vector3f finalTranslation = startTrans + incrementTrans;
+        Eigen::Translation3f startTrans =
+            Conversion::getTranslation(start);
+        Eigen::Translation3f incrementTrans =
+            Conversion::getTranslation(increment);
 
         Eigen::Quaternionf startQuat = Conversion::getQuat(start);
         Eigen::Quaternionf incrementQuat = Conversion::getQuat(increment);
+
+        Eigen::Translation3f rotatedIncrementTrans =
+            Conversion::getTranslation(
+                    Eigen::Transform<float,3,Eigen::Affine>(
+                        startQuat*incrementTrans).matrix());
+
+        Eigen::Translation3f finalTranslation =
+            startTrans * rotatedIncrementTrans;
+
         Eigen::Quaternionf finalQuat = incrementQuat * startQuat;
 
         Eigen::Matrix4f finalPose = Eigen::Matrix4f::Identity();
         finalPose.block<3,3>(0,0) = finalQuat.matrix();
-        finalPose.block<3,1>(0,3) = finalTranslation;
+        finalPose.block<3,1>(0,3) = finalTranslation.vector();
 
         return finalPose;
     }
 
+    // Old version without start heading rotation on the increment translation
+    //tf::Pose getPoseComposition(const tf::Pose& start,
+    //const tf::Pose& increment) {
+    //tf::Pose finalPose;
+    //finalPose.setOrigin(start.getOrigin() + increment.getOrigin());
+    //finalPose.setRotation(increment.getRotation()*start.getRotation());
+
+    //return finalPose;
+    //}
+
     tf::Pose getPoseComposition(const tf::Pose& start,
             const tf::Pose& increment) {
-        tf::Pose finalPose;
-        finalPose.setOrigin(start.getOrigin() + increment.getOrigin());
-        finalPose.setRotation(increment.getRotation()*start.getRotation());
+        Eigen::Matrix4f finalEigenPose = Conversion::getPoseComposition(
+                Conversion::tfToEigen(start), Conversion::tfToEigen(increment));
 
-        return finalPose;
+        return Conversion::eigenToTf(finalEigenPose);
     }
 
     float getL2Distance(const tf::Pose& pose1, const tf::Pose& pose2) {
@@ -133,6 +170,6 @@ namespace Conversion {
             << pose.getRotation().z() << ","
             << pose.getRotation().w() << ")";
 
-            return ss.str();
+        return ss.str();
     }
 }

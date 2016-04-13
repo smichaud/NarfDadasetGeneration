@@ -50,6 +50,7 @@ void DatasetGenerator::managePointCloudMsg(rosbag::MessageInstance const &msg) {
 
     if(cloudMsg != NULL) {
         if(this->totalCloudIndex % this->pointCloudKeepOneOutOf == 0) {
+            std::cout << "" << std::endl;
             ROS_INFO_STREAM("===== Processing cloud " << this->cloudIndex);
 
             shared_ptr<PM::DataPoints> cloud(new PM::DataPoints(
@@ -170,10 +171,23 @@ Eigen::Matrix4f DatasetGenerator::computeCloudOdometry(
         Eigen::Matrix4f icpOdom;
         bool isOdomGood = false;
         while(this->isOdomMergedCloudsSaved && !isOdomGood) {
+            std::cout << "Init transformation: "
+                << Conversion::getTranslation(initTransfo).x()  << " "
+                << Conversion::getTranslation(initTransfo).y()  << " "
+                << Conversion::getTranslation(initTransfo).z()  << " "
+                << Conversion::getRPY(initTransfo).transpose() << std::endl;
+
             icpOdom = IcpOdometry::getCorrectedTransfo(
                     *this->lastPointCloud, *currentCloud,
                     initTransfo, this->icpConfigPath, filename,
                     this->isOdomMergedCloudsSaved);
+
+            std::cout << "ICP transformation: "
+                << Conversion::getTranslation(icpOdom).x()  << " "
+                << Conversion::getTranslation(icpOdom).y()  << " "
+                << Conversion::getTranslation(icpOdom).z()  << " "
+                << Conversion::getRPY(icpOdom).transpose() << std::endl;
+
             isOdomGood = !this->userOdomAdjustment(initTransfo, filename);
         }
 
@@ -216,6 +230,12 @@ Eigen::Matrix4f DatasetGenerator::setFirstLoopBestMatch() {
                     this->generateCloudFilename(bestIndex))));
     this->lastPointCloud = closestPointCloud;
 
+    std::cout << "Best from 1st loop : " << bestIndex << " with initTransfo : "
+        << Conversion::getTranslation(initTransfo).x()  << " "
+        << Conversion::getTranslation(initTransfo).y()  << " "
+        << Conversion::getTranslation(initTransfo).z()  << " "
+        << Conversion::getRPY(initTransfo).transpose() << std::endl;
+
     return initTransfo;
 }
 
@@ -224,24 +244,36 @@ bool DatasetGenerator::userOdomAdjustment(Eigen::Matrix4f& initTransfo,
     std::string inputBuffer;
     float value;
     std::cout << "Press <enter> if no adjustment required. "
-        << "Else enter yaw or all: ";
+        << "Else initial value to change, enter x or (y)aw or (a)ll: ";
 
     std::string viewerApp = "paraview ";
     viewerApp.append(filename + ".vtk &");
     std::system(viewerApp.c_str());
+    std::string paraviewKillCommand = "pkill -SIGTERM paraview";
 
     std::getline(std::cin, inputBuffer);
 
     if(!inputBuffer.empty()) {
-        float x=0, y=0, z=0, roll=0, pitch=0, yaw=0;
+        float x = Conversion::getTranslation(initTransfo).x();
+        float y = Conversion::getTranslation(initTransfo).y();
+        float z = Conversion::getTranslation(initTransfo).z();
+        float roll = Conversion::getRPY(initTransfo).x();
+        float pitch = Conversion::getRPY(initTransfo).y();
+        float yaw = Conversion::getRPY(initTransfo).z();
 
-        if(inputBuffer == "yaw") {
+        if(inputBuffer == "x") {
+            std::cout << "Enter x: ";
+
+            std::getline(std::cin, inputBuffer);
+            std::stringstream lineStream(inputBuffer);
+            lineStream >> x;
+        } else if(inputBuffer == "yaw" || inputBuffer == "y") {
             std::cout << "Enter yaw: ";
 
             std::getline(std::cin, inputBuffer);
             std::stringstream lineStream(inputBuffer);
             lineStream >> yaw;
-        } else if(inputBuffer == "all") {
+        } else if(inputBuffer == "all" || inputBuffer == "a") {
             std::cout << "Enter x y z roll pitch yaw: ";
 
             std::getline(std::cin, inputBuffer);
@@ -249,13 +281,19 @@ bool DatasetGenerator::userOdomAdjustment(Eigen::Matrix4f& initTransfo,
             lineStream >> x >> y >> z >> roll >> pitch >> yaw;
         }
 
-        Eigen::Matrix4f increment = Conversion::fromTranslationRPY(
-                x,y,z,roll,pitch,yaw);
-        initTransfo = Conversion::getPoseComposition(initTransfo, increment);
+        //Eigen::Matrix4f increment = Conversion::fromTranslationRPY(
+                //x,y,z,roll,pitch,yaw);
+        //initTransfo = Conversion::getPoseComposition(initTransfo, increment);
+        initTransfo = Conversion::fromTranslationRPY(x,y,z,roll,pitch,yaw);
+
+        std::system(paraviewKillCommand.c_str());
         return true;
     }
 
     std::cout << "No adjusment will be done." << std::endl;
+
+    std::system(paraviewKillCommand.c_str());
+
     return false;
 }
 
